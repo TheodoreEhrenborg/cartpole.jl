@@ -13,6 +13,9 @@ using StatsBase
 # ╔═╡ 277527c7-8f78-4b8d-8552-75eb74547472
 using Flux
 
+# ╔═╡ 25559ec2-1e6a-440e-a96a-7c767236c489
+using Maybe
+
 # ╔═╡ 130ba5b2-4edb-4218-8bee-09bdfa3e9e79
 run(
            RandomPolicy(),
@@ -40,7 +43,10 @@ env = RandomWalk1D()
 S = state_space(env)
 
 # ╔═╡ f597785b-8ae4-4bc3-b0b0-4e2bd41b7d98
+# ╠═╡ disabled = true
+#=╠═╡
 s = state(env)
+  ╠═╡ =#
 
 # ╔═╡ 0b622199-3f0a-4242-a71c-f0b004bfd7bc
 A = action_space(env)
@@ -134,25 +140,6 @@ run(    RandomPolicy(),    RandomWalk1D(),    StopAfterEpisode(10),    TotalRewa
 
 # ╔═╡ 32f8dc85-759b-441b-8cba-8607ca8a7dd8
 run(    RandomPolicy(),    CartPoleEnv(),    StopAfterEpisode(10),    TotalRewardPerEpisode())
-
-# ╔═╡ 59d4be4e-378e-4adc-be57-09c386625665
-begin
-	c3 = CartPoleEnv()
-	i = 0
-	while true
-		i+=1
-	    c3((i%2)+1)
-		println(state(c3))
-		println(reward(c3))
-	    is_terminated(c3) && break
-	end
-end
-
-# ╔═╡ f9f38415-19e4-4fa3-a8ce-3b8aa5e2b621
-c3(2)
-
-# ╔═╡ 4aa0a259-e0c0-46c5-8c17-422c556a2dfb
-c3
 
 # ╔═╡ 4941dfc4-dfef-4982-9add-81e46446c977
 c4 = CartPoleEnv()
@@ -257,6 +244,140 @@ begin
 	state(c4)
 end
 
+# ╔═╡ d1c0777a-0d03-4b4e-9b14-1d9d9cebee88
+sample(1:2,)
+
+# ╔═╡ 024cbb3b-b3f1-4bb4-9d75-58605db993d3
+AbstractWeights
+
+# ╔═╡ 75512332-527c-458c-a235-1e5ebdb24d98
+sample([1,2],StatsBase.Weights([1,10]))
+
+# ╔═╡ 45a3593d-6d3d-491f-9e6d-a9f929660086
+[5 for x in 1:3]
+
+# ╔═╡ 821b2f08-3d87-4d95-9c8b-b393b59e668b
+[_->[1,100]]*2
+
+# ╔═╡ ba58b1c4-49d4-4f22-8602-8ec24d8ee1d9
+f(x) =x ^2
+
+# ╔═╡ 74e56681-27a7-4cf3-9f8c-867e9e8e17fa
+gradient(f,3)
+
+# ╔═╡ 2693ca99-1259-4ddc-a6b8-94278de74077
+Flux.withgradient(f,3)
+
+# ╔═╡ f0cc8ae6-6029-464f-9b75-602f1c28f6bb
+Dense(4 => 2).weight
+
+# ╔═╡ 73020fe0-0d26-44e4-8805-1367fe3358d3
+sample([1,2],StatsBase.Weights([0.1,1,3]))
+
+# ╔═╡ 391dc642-5312-4254-aa2c-c976dcd79e3b
+s = state(CartPoleEnv())
+
+# ╔═╡ f5632aa3-afa6-4a08-b23e-e1dbd308353f
+d = Dense(4=>2)
+
+# ╔═╡ cf4a14b2-9a81-4959-8367-0e002379883c
+Flux.withgradient(model -> model(s)[1], d)
+
+# ╔═╡ e2dbc27f-be0e-4778-8e0e-4f122fab93d8
+Flux.withgradient(d) do model
+   model(s)[1]
+   end
+
+# ╔═╡ f14b44dc-d74d-4649-8412-4aa6ef0ac432
+x, y = (3,2)
+
+# ╔═╡ 70309eca-45b4-4b45-a0c7-90f711fbf26f
+x
+
+# ╔═╡ c20fae2f-7869-4a6f-82a3-73daa7ff2c87
+y
+
+# ╔═╡ c0b40272-9947-4ca1-a62d-cd98b172c781
+d
+
+# ╔═╡ 0506c195-a045-4273-a192-fa54abd9ddd6
+model
+
+# ╔═╡ 8c29f57d-a527-48fc-9021-cd6055fdedec
+d2 = Dense(4=>1)
+
+# ╔═╡ 94ad20ba-2013-4623-9707-2ca3d65ab66d
+rand([1,2])
+
+# ╔═╡ 7d007f0a-5b67-4fea-9558-27b53cbf6dcf
+?rand
+
+# ╔═╡ ef1b2dee-5d13-4216-9a2a-9c0484bd4131
+rand()
+
+# ╔═╡ 3882e4a7-bf84-49cc-a4f8-11db7ff90731
+import Zygote
+
+# ╔═╡ 90aa9624-f3d4-40c3-926b-619d2dbc5958
+Zygote.Grads
+
+# ╔═╡ d70c43c5-0565-43fd-a26a-a39a95e89cda
+
+
+# ╔═╡ a5142872-e996-4955-a553-fe020229cd2f
+begin
+	import Base.:+
+	+(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}) = (weight=a.weight+b.weight, bias = a.bias+b.bias, σ=nothing )
+	+(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}) = map(+,a,b)
+end
+
+# ╔═╡ 59d4be4e-378e-4adc-be57-09c386625665
+begin
+	c3 = CartPoleEnv()
+	i = 0
+	while true
+		i+=1
+	    c3((i%2)+1)
+		println(state(c3))
+		println(reward(c3))
+	    is_terminated(c3) && break
+	end
+end
+
+# ╔═╡ f9f38415-19e4-4fa3-a8ce-3b8aa5e2b621
+c3(2)
+
+# ╔═╡ 4aa0a259-e0c0-46c5-8c17-422c556a2dfb
+c3
+
+# ╔═╡ 7047f6ef-8acf-46b8-8e33-3b60679bdd5b
+v, g = Flux.withgradient(d2) do model
+	        # prob of picking 1
+            prob = model(state(c3))[1]
+	println(prob)
+			choice = rand()<prob ? 1 : 2
+	        print(choice)
+			return choice == 1 ? prob : 1 - prob
+        end
+
+# ╔═╡ 0737005d-d344-49e9-b4ca-15dec8bbaffb
+g
+
+# ╔═╡ f48f920f-d259-4fdf-bf70-bf0a02d4ef98
+Zygote.Grads( g[1], "foo")
+
+# ╔═╡ ae15a154-4725-4a95-8a35-3278af4ee004
+begin
+	xk = 3
+	Flux.withgradient(d2) do model
+	            prob = model(state(c3))[1]
+				choice = rand()<prob ? 1 : 2
+		xk = 4
+				return choice == 1 ? prob : 1 - prob
+	        end
+	print(xk)
+end
+
 # ╔═╡ 342afffc-9b82-4e2b-ad07-e588459b94bf
 "Uses model to guide decisions on cartpoleenv
 and returns the total number of moves until
@@ -275,20 +396,8 @@ function value(model)
 	i
 end
 
-# ╔═╡ d1c0777a-0d03-4b4e-9b14-1d9d9cebee88
-sample(1:2,)
-
-# ╔═╡ 024cbb3b-b3f1-4bb4-9d75-58605db993d3
-AbstractWeights
-
-# ╔═╡ 75512332-527c-458c-a235-1e5ebdb24d98
-sample([1,2],StatsBase.Weights([1,10]))
-
 # ╔═╡ c61b1458-52bc-464f-9ed4-ac67a1e1ac68
 value(x->[1,10])
-
-# ╔═╡ 45a3593d-6d3d-491f-9e6d-a9f929660086
-[5 for x in 1:3]
 
 # ╔═╡ 3447f889-db39-4936-8f40-63861a7e8504
 function mean_value(model)
@@ -301,45 +410,98 @@ mean_value(x->[1,1])
 # ╔═╡ 64dcc304-2ede-4b4b-a272-efa5a0026453
 mean_value(x->[10,1])
 
-# ╔═╡ c65a1343-e23e-49e7-9562-fb0e58c70bf7
-"Like value but returns some other stuff too"
-function value2(model) 
+# ╔═╡ aa4c80ad-a7db-4a37-a09c-b4d0e0448a87
+begin
+	m = Dense(4=>2)
+	println(mean_value(m))
+	println(m.weight)
+	println(m.bias)
+end
+
+# ╔═╡ d6099f4b-dd05-4295-8fa1-63cba651f7f9
+g::Zygote.Grads .+ g
+
+# ╔═╡ 9a41b22a-6633-4408-b636-d97565844b07
+@? (+)(nothing, nothing)
+
+# ╔═╡ 37c5dca6-0b14-4d8a-b487-8967452a5653
+@? 1 + 1
+
+# ╔═╡ 937caab7-852f-4f56-bf13-6a88f1a7bba9
+@? 1 + nothing
+
+# ╔═╡ 54ac4da5-20c3-4627-ab7b-e857abec86d9
+g+g
+
+# ╔═╡ a50b6f90-6110-44b3-bc15-581b577ce5db
+begin
+	import Base.:/
+	/(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, b::Int64) = (weight=a.weight/b, bias = a.bias/b, σ=nothing )
+	/(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}, b::Int64) = a ./b
+end
+
+# ╔═╡ 2776eb11-8191-42fe-ae95-d08d0c65798d
+"Like value but also returns the gradient of model's
+parameters, averaged over all choices the model made.
+Adjusting the parameters by this gradient will make the model
+more likely to act as it does in this playout"
+function value3(model) 
 	max_steps = 100
     c3 = CartPoleEnv()
 	i = 0
-	states = []
 	prob_list = []
 	choices = []
 	while i < max_steps
 		i+=1
-		push!(states,state(c3))
-		probs = model(state(c3))
-		push!(prob_list, probs)
-		choice = sample([1,2],StatsBase.Weights(probs))
-		push!(choices, choice)
+			        # prob of picking 1
+
+  prob_1, grads_1  = Flux.withgradient(model) do m
+  
+            prob = m(state(c3))[1]
+  end
+			choice = rand()<prob_1 ? 1 : 2
+			grads_chosen = choice == 1 ? grads_1 :  - grads_1
+	print(grads_chosen)
+
+		
 	    c3(choice)
 	    is_terminated(c3) && break
 	end
-	i, states, prob_list, choices
+	i, sum_grad/i
+end
+
+# ╔═╡ c65a1343-e23e-49e7-9562-fb0e58c70bf7
+"Like value but also returns the gradient of model's
+parameters, averaged over all choices the model made.
+Adjusting the parameters by this gradient will make the model
+more likely to act as it does in this playout"
+function value2(model) 
+	max_steps = 100
+    c3 = CartPoleEnv()
+	i = 0
+	grad_list = []
+	choices = []
+	while i < max_steps
+		i+=1
+		choice = 1
+        prob_chosen, grads_chosen  = Flux.withgradient(d2) do model
+	        # prob of picking 1
+            prob = model(state(c3))[1]
+			choice = rand()<prob ? 1 : 2
+			return choice == 1 ? prob : 1 - prob
+        end
+		push!(grad_list,grads_chosen)
+	    c3(choice)
+	    is_terminated(c3) && break
+	end
+	i , sum(grad_list) / i
 end
 
 # ╔═╡ 4f53a96c-a6ef-49df-bbc4-9ebb3e3d9bfb
-value2(_->[1,100])
+value2(Dense(4=>1))
 
-# ╔═╡ 85de7297-5f34-4c48-99bd-d8e0acdef958
-length(value2.([_->[1,100],_->[1,100]]))
-
-# ╔═╡ 821b2f08-3d87-4d95-9c8b-b393b59e668b
-[_->[1,100]]*2
-
-# ╔═╡ ba58b1c4-49d4-4f22-8602-8ec24d8ee1d9
-f(x) =x ^2
-
-# ╔═╡ 74e56681-27a7-4cf3-9f8c-867e9e8e17fa
-gradient(f,3)
-
-# ╔═╡ 2693ca99-1259-4ddc-a6b8-94278de74077
-Flux.withgradient(f,3)
+# ╔═╡ c9bb0aef-72b8-486d-9ca1-56217ee1099c
+value2(Dense(4=>2))
 
 # ╔═╡ 194261d8-399e-4bbd-ac2d-269f78796a4d
 normalize(v) = (v.-mean(v))/std(v)
@@ -347,17 +509,36 @@ normalize(v) = (v.-mean(v))/std(v)
 # ╔═╡ 8b6b9c19-035b-4c49-b6a6-8d7a55d15c8e
 normalize([1,2])
 
+# ╔═╡ 01849ee6-8c38-458d-9c62-d4deadbdeeed
+[4.0]/5
+
+# ╔═╡ 00c07740-9f44-4099-964a-0f647090fdce
+g/6
+
+# ╔═╡ 9843fb32-03c5-431b-9a9b-8ec17a2c9c69
+g+g
+
+# ╔═╡ 8b3d655c-2415-4b64-bf2c-4181ee54f12d
+g
+
+# ╔═╡ 5f751ddd-e157-442c-9fc2-801f3ca0ebde
+zeros(g)
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+Maybe = "334f122f-1118-46cc-837f-bff747ee6f78"
 ReinforcementLearning = "158674fc-8238-5cab-b5ba-03dfc80d1318"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 Flux = "~0.13.4"
+Maybe = "~0.1.7"
 ReinforcementLearning = "~0.10.2"
 StatsBase = "~0.33.21"
+Zygote = "~0.6.62"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -366,7 +547,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.1"
 manifest_format = "2.0"
-project_hash = "cbe26bf647ef571e39ef19199a1d67936ebe08a0"
+project_hash = "a72bc6dd32bb0609206593202c4bcf9d17f59a7a"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -700,6 +881,11 @@ git-tree-sha1 = "5e1e4c53fa39afe63a7d356e30452249365fba99"
 uuid = "411431e0-e8b7-467b-b5e0-f676ba4f2910"
 version = "0.1.1"
 
+[[deps.ExternalDocstrings]]
+git-tree-sha1 = "1224740fc4d07c989949e1c1b508ebd49a65a5f6"
+uuid = "e189563c-0753-4f5e-ad5c-be4293c83fb4"
+version = "0.1.1"
+
 [[deps.FLoops]]
 deps = ["BangBang", "Compat", "FLoopsBase", "InitialValues", "JuliaVariables", "MLStyle", "Serialization", "Setfield", "Transducers"]
 git-tree-sha1 = "ffb97765602e3cbe59a0589d237bf07f245a8576"
@@ -980,6 +1166,12 @@ version = "0.1.8"
 [[deps.Markdown]]
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
+
+[[deps.Maybe]]
+deps = ["Compat", "ExprTools", "ExternalDocstrings", "Try"]
+git-tree-sha1 = "20da985e239bb56c8c9f76bdc9cfb87c1638c8f0"
+uuid = "334f122f-1118-46cc-837f-bff747ee6f78"
+version = "0.1.7"
 
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1375,6 +1567,11 @@ git-tree-sha1 = "aadb748be58b492045b4f56166b5188aa63ce549"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
 version = "0.1.7"
 
+[[deps.Try]]
+git-tree-sha1 = "56e72d45a7d77e23f6e943d28183eb509119843a"
+uuid = "bf1d0ff0-c4a9-496b-85f0-2b0d71c4f32a"
+version = "0.1.1"
+
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
@@ -1513,11 +1710,12 @@ version = "17.4.0+0"
 # ╠═0e03068a-fa34-450e-b6f4-06e81a2e1a47
 # ╠═c61b1458-52bc-464f-9ed4-ac67a1e1ac68
 # ╠═64dcc304-2ede-4b4b-a272-efa5a0026453
+# ╠═aa4c80ad-a7db-4a37-a09c-b4d0e0448a87
 # ╠═45a3593d-6d3d-491f-9e6d-a9f929660086
 # ╠═3447f889-db39-4936-8f40-63861a7e8504
+# ╠═2776eb11-8191-42fe-ae95-d08d0c65798d
 # ╠═c65a1343-e23e-49e7-9562-fb0e58c70bf7
 # ╠═4f53a96c-a6ef-49df-bbc4-9ebb3e3d9bfb
-# ╠═85de7297-5f34-4c48-99bd-d8e0acdef958
 # ╠═821b2f08-3d87-4d95-9c8b-b393b59e668b
 # ╠═277527c7-8f78-4b8d-8552-75eb74547472
 # ╠═ba58b1c4-49d4-4f22-8602-8ec24d8ee1d9
@@ -1525,5 +1723,41 @@ version = "17.4.0+0"
 # ╠═2693ca99-1259-4ddc-a6b8-94278de74077
 # ╠═194261d8-399e-4bbd-ac2d-269f78796a4d
 # ╠═8b6b9c19-035b-4c49-b6a6-8d7a55d15c8e
+# ╠═f0cc8ae6-6029-464f-9b75-602f1c28f6bb
+# ╠═73020fe0-0d26-44e4-8805-1367fe3358d3
+# ╠═391dc642-5312-4254-aa2c-c976dcd79e3b
+# ╠═f5632aa3-afa6-4a08-b23e-e1dbd308353f
+# ╠═cf4a14b2-9a81-4959-8367-0e002379883c
+# ╠═e2dbc27f-be0e-4778-8e0e-4f122fab93d8
+# ╠═c9bb0aef-72b8-486d-9ca1-56217ee1099c
+# ╠═f14b44dc-d74d-4649-8412-4aa6ef0ac432
+# ╠═70309eca-45b4-4b45-a0c7-90f711fbf26f
+# ╠═c20fae2f-7869-4a6f-82a3-73daa7ff2c87
+# ╠═c0b40272-9947-4ca1-a62d-cd98b172c781
+# ╠═0506c195-a045-4273-a192-fa54abd9ddd6
+# ╠═8c29f57d-a527-48fc-9021-cd6055fdedec
+# ╠═7047f6ef-8acf-46b8-8e33-3b60679bdd5b
+# ╠═0737005d-d344-49e9-b4ca-15dec8bbaffb
+# ╠═d6099f4b-dd05-4295-8fa1-63cba651f7f9
+# ╠═94ad20ba-2013-4623-9707-2ca3d65ab66d
+# ╠═7d007f0a-5b67-4fea-9558-27b53cbf6dcf
+# ╠═ef1b2dee-5d13-4216-9a2a-9c0484bd4131
+# ╠═ae15a154-4725-4a95-8a35-3278af4ee004
+# ╠═3882e4a7-bf84-49cc-a4f8-11db7ff90731
+# ╠═90aa9624-f3d4-40c3-926b-619d2dbc5958
+# ╠═f48f920f-d259-4fdf-bf70-bf0a02d4ef98
+# ╠═25559ec2-1e6a-440e-a96a-7c767236c489
+# ╠═9a41b22a-6633-4408-b636-d97565844b07
+# ╠═37c5dca6-0b14-4d8a-b487-8967452a5653
+# ╠═937caab7-852f-4f56-bf13-6a88f1a7bba9
+# ╠═54ac4da5-20c3-4627-ab7b-e857abec86d9
+# ╠═d70c43c5-0565-43fd-a26a-a39a95e89cda
+# ╠═a5142872-e996-4955-a553-fe020229cd2f
+# ╠═a50b6f90-6110-44b3-bc15-581b577ce5db
+# ╠═01849ee6-8c38-458d-9c62-d4deadbdeeed
+# ╠═00c07740-9f44-4099-964a-0f647090fdce
+# ╠═9843fb32-03c5-431b-9a9b-8ec17a2c9c69
+# ╠═8b3d655c-2415-4b64-bf2c-4181ee54f12d
+# ╠═5f751ddd-e157-442c-9fc2-801f3ca0ebde
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
