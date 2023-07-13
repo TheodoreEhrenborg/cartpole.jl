@@ -151,6 +151,9 @@ end
 @report_opt train_loop()
   ╠═╡ =#
 
+# ╔═╡ 79bea52d-49ce-4e17-9956-b8d827b7d6b9
+# Achieves 40.843 game steps with train_loop(1000)
+
 # ╔═╡ 7f977297-cc87-453f-962c-46abb21d17c9
 # ╠═╡ disabled = true
 #=╠═╡
@@ -166,7 +169,10 @@ end
 
 
 # ╔═╡ 14f949cc-83f0-4a80-8761-c92cd266498e
+# ╠═╡ disabled = true
+#=╠═╡
 Profile.clear()
+  ╠═╡ =#
 
 # ╔═╡ 0872cf33-00c2-4957-80cb-1a9df2c682af
 # ╠═╡ disabled = true
@@ -206,10 +212,10 @@ Profile.print()
 unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
 
 # ╔═╡ 5b5973fc-cfa1-4529-b72d-a65fa8771f17
-function inner(model, opt)
-		scores, grads = unzip([value2(model) for _ in 1:100])
+function inner(model, opt, runs)
+		scores, grads = unzip([value2(model) for _ in 1:runs])
 	   
-	  #println(mean(scores))
+	  println(mean(scores))
 	  #collect(scores)
 	  #scores, normalize(scores)
 	  # This will give negative coefficients to 
@@ -227,27 +233,65 @@ function inner(model, opt)
 end
 
 # ╔═╡ 344797a6-6083-4201-afce-6ef338cf14e1
-function train_loop(iters)
+function train_loop(iters, runs_per_iter)
 	the_model = Dense(4=>1)
 	rule = Optimisers.Adam()
 	opt = Optimisers.setup(rule, the_model)
 	##println(mean_value(the_model))
 	for _ in 1:iters
-        opt, the_model = inner(the_model, opt)
+        opt, the_model = inner(the_model, opt, runs_per_iter)
 	end
+	println(the_model.bias)
+	println(the_model.weight)
 end
 
-# ╔═╡ 5d3a5aef-e1a0-405b-b86a-00a0340264fb
-train_loop(2000)
-
 # ╔═╡ 83f60297-511a-41d3-bd3b-c949e52326df
-@time train_loop(100)
+# ╠═╡ disabled = true
+#=╠═╡
+@time train_loop(10)
+  ╠═╡ =#
 
 # ╔═╡ 7d984dfa-5422-4c64-97c9-4dfa363665f1
+# ╠═╡ disabled = true
+#=╠═╡
 @time train_loop(100)
+  ╠═╡ =#
+
+# ╔═╡ 29856ae9-199b-4110-975e-84323b4cce17
+# ╠═╡ disabled = true
+#=╠═╡
+@time train_loop(100)
+  ╠═╡ =#
+
+# ╔═╡ 10eb6772-bdb7-495c-86f4-987a7282a0eb
+# ╠═╡ disabled = true
+#=╠═╡
+@time train_loop(100)
+  ╠═╡ =#
+
+# ╔═╡ 55eb8a75-8936-4068-9f13-6b7f0bbdae99
+# ╠═╡ disabled = true
+#=╠═╡
+train_loop(1000)
+  ╠═╡ =#
+
+# ╔═╡ c4e91730-4e06-4c47-b30b-6c6efffd0410
+# ╠═╡ disabled = true
+#=╠═╡
+train_loop(100)
+  ╠═╡ =#
+
+# ╔═╡ 68125a71-3e66-4015-9a66-6678055f5ff5
+# ╠═╡ disabled = true
+#=╠═╡
+train_loop(1000)
+  ╠═╡ =#
 
 # ╔═╡ eb4dedbc-2786-4ce7-8e91-9eebc159e6d0
+# ╠═╡ disabled = true
+#=╠═╡
 @benchmark train_loop(10)
+  ╠═╡ =#
 
 # ╔═╡ 3c085ea5-a5da-40e1-baef-0136eff9e8a8
 m = Dense(4=>1)
@@ -270,66 +314,75 @@ m = Dense(4=>1)
 # ╔═╡ 3958b805-ea77-435c-aef4-c98de806d90a
 @code_warntype value2(m)
 
-# ╔═╡ 9cd1f3a8-5d89-4d21-b8e7-aa95c33abc1a
-"Like value but also returns the gradient of model's
-parameters, averaged over all choices the model made.
-Adjusting the parameters by this gradient will make the model
-more likely to act as it does in this playout"
-function value3(model)::Tuple{Int64, Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}} }
-	max_steps = 100
-    c3 = CartPoleEnv()
-	i = 0
-	grad_list::Vector{Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}} = []
-	choices = []
-	
-    i+=1
-		choice = 1
-		the_state = state(c3)
-        sum_grad::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}  = Flux.withgradient(model) do mm
-	        # prob of picking 1
-            prob = mm(the_state)[1] 
-			#println(prob)
-			choice = rand()<prob ? 1 : 2
-			return choice == 1 ? prob : 1 - prob
-		end[2]
-	    c3(choice)
-	while i < max_steps
-		i+=1
-		choice = 1
-		the_state = state(c3)
-        sum_grad::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}  += Flux.withgradient(model) do mm
-	        # prob of picking 1
-            prob = mm(the_state)[1] 
-			#println(prob)
-			choice = rand()<prob ? 1 : 2
-			return choice == 1 ? prob : 1 - prob
-		end[2]
-	    c3(choice)
-	    is_terminated(c3) && break
-	end
-	i , sum_grad / i
-end
-
-# ╔═╡ 927bf55c-5ffc-4a98-8ab4-f92374ad4f13
-@code_warntype value3(m)
-
-# ╔═╡ c6718e4b-f027-45e0-936b-89de690397cf
-@benchmark value3(m)
-
-# ╔═╡ 0b9fca06-6615-4844-97a2-6337ee2c890a
-zero(Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}) = Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{zero(Matrix{Float32}), zero(Vector{Float32}), Nothing}}}
-
-# ╔═╡ 9cfbeb38-0b96-4177-ab8d-9be14f14320b
-zero(Float64)
-
-# ╔═╡ b9d3e279-084c-4f7e-b9d3-b043e2e06a86
-zero(Int64)
-
-# ╔═╡ 992b4d68-ef9c-4be1-85f3-f724de18bcdd
-zero(Vector{Float32})
-
 # ╔═╡ 56d8e9a3-698f-4034-8291-efc5973cbcc8
 @report_opt value2(m)
+
+# ╔═╡ 5f7658aa-d96e-45bd-9942-98f138fc8535
+# ╠═╡ disabled = true
+#=╠═╡
+m2 = Dense(4=>1)
+  ╠═╡ =#
+
+# ╔═╡ 63a2ffc2-aefe-4599-a042-e3d42447ac3f
+#=╠═╡
+m2.bias
+  ╠═╡ =#
+
+# ╔═╡ 108093f2-9496-4f75-9b04-cbefe9fad675
+#=╠═╡
+m2.weight  .= [0. 0. 0. -1. ]
+  ╠═╡ =#
+
+# ╔═╡ 94a9129e-113f-41ad-bf17-b93f3e4a1fdd
+#=╠═╡
+mean_value(m2)
+  ╠═╡ =#
+
+# ╔═╡ e4ed6a37-82ae-45b6-a7c7-b6b0ef19439d
+#=╠═╡
+m2.bias
+  ╠═╡ =#
+
+# ╔═╡ 5490a57f-5bf4-40c3-9532-86ad6aadb8a6
+#=╠═╡
+m2.weight
+  ╠═╡ =#
+
+# ╔═╡ fed8b5e5-0040-4972-90fa-de52ff612ba1
+train_loop(100,1000)
+
+# ╔═╡ fadc6568-4f23-4d7b-aeac-50d92d184666
+train_loop(1000,100)
+
+# ╔═╡ ecd79dd2-6f3d-4081-844d-25bcc5e92ed2
+train_loop(1000,100)
+
+# ╔═╡ f2f41afc-e3e6-4420-80dc-045652ef4e2e
+train_loop(100,1000)
+
+# ╔═╡ 4b148b5d-39b8-4ff6-8ec6-9f3f38eb7e29
+train_loop(1000,10)
+
+# ╔═╡ 6bdc8595-1e1a-40d7-b627-b421c317eedc
+train_loop(1000,10)
+
+# ╔═╡ fec94493-eefc-4182-91d5-329897775763
+value2(Chain(Dense(4=>10),Dense(10=>1)))
+
+# ╔═╡ 0d960581-15aa-4af8-92b0-3fbae3869ceb
+m3=Dense([-1.1152266 0.023610264 0.60426503 -0.49385205], [0.40893412] )
+
+# ╔═╡ 288fecc0-a9c2-4a19-aa5c-9cbffeb95982
+mean_value(m3)
+
+# ╔═╡ 48992180-9233-4d63-89f5-f57fb15d58cd
+Dense
+
+# ╔═╡ 57e0206e-6d3d-407f-8794-1edc2c0fab66
+m.bias
+
+# ╔═╡ 05351604-dddc-4663-80bc-a66e4c4aff08
+Dense
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1932,13 +1985,18 @@ version = "1.0.1+0"
 # ╠═1632deff-3e48-42e9-86f8-3fd0cd46ea16
 # ╠═344797a6-6083-4201-afce-6ef338cf14e1
 # ╠═5b5973fc-cfa1-4529-b72d-a65fa8771f17
-# ╠═5d3a5aef-e1a0-405b-b86a-00a0340264fb
 # ╠═43b8a22d-4e61-4f83-b9e4-194ce6cdd0f7
 # ╠═fafe5139-fada-4220-a3c3-9fd8b26aed9a
 # ╠═91ac3fa9-715c-4d60-aa9d-f78a04416b8f
 # ╠═1a57012d-7162-431c-bad2-0dba54f20649
 # ╠═83f60297-511a-41d3-bd3b-c949e52326df
 # ╠═7d984dfa-5422-4c64-97c9-4dfa363665f1
+# ╠═29856ae9-199b-4110-975e-84323b4cce17
+# ╠═10eb6772-bdb7-495c-86f4-987a7282a0eb
+# ╠═55eb8a75-8936-4068-9f13-6b7f0bbdae99
+# ╠═79bea52d-49ce-4e17-9956-b8d827b7d6b9
+# ╠═c4e91730-4e06-4c47-b30b-6c6efffd0410
+# ╠═68125a71-3e66-4015-9a66-6678055f5ff5
 # ╠═7f977297-cc87-453f-962c-46abb21d17c9
 # ╠═9bd01014-a0ed-4ec0-b373-d0285dca1e96
 # ╠═02b21f61-1a79-4485-b70e-91b2a4f95f9d
@@ -1962,13 +2020,24 @@ version = "1.0.1+0"
 # ╠═da1718b3-5be2-4ef0-8eaf-c647830bff05
 # ╠═101f5f45-c6f8-49d2-b62c-306388f97089
 # ╠═3958b805-ea77-435c-aef4-c98de806d90a
-# ╠═9cd1f3a8-5d89-4d21-b8e7-aa95c33abc1a
-# ╠═9cfbeb38-0b96-4177-ab8d-9be14f14320b
-# ╠═927bf55c-5ffc-4a98-8ab4-f92374ad4f13
-# ╠═c6718e4b-f027-45e0-936b-89de690397cf
-# ╠═b9d3e279-084c-4f7e-b9d3-b043e2e06a86
-# ╠═0b9fca06-6615-4844-97a2-6337ee2c890a
-# ╠═992b4d68-ef9c-4be1-85f3-f724de18bcdd
 # ╠═56d8e9a3-698f-4034-8291-efc5973cbcc8
+# ╠═5f7658aa-d96e-45bd-9942-98f138fc8535
+# ╠═63a2ffc2-aefe-4599-a042-e3d42447ac3f
+# ╠═108093f2-9496-4f75-9b04-cbefe9fad675
+# ╠═94a9129e-113f-41ad-bf17-b93f3e4a1fdd
+# ╠═e4ed6a37-82ae-45b6-a7c7-b6b0ef19439d
+# ╠═5490a57f-5bf4-40c3-9532-86ad6aadb8a6
+# ╠═fed8b5e5-0040-4972-90fa-de52ff612ba1
+# ╠═fadc6568-4f23-4d7b-aeac-50d92d184666
+# ╠═ecd79dd2-6f3d-4081-844d-25bcc5e92ed2
+# ╠═f2f41afc-e3e6-4420-80dc-045652ef4e2e
+# ╠═4b148b5d-39b8-4ff6-8ec6-9f3f38eb7e29
+# ╠═6bdc8595-1e1a-40d7-b627-b421c317eedc
+# ╠═fec94493-eefc-4182-91d5-329897775763
+# ╠═0d960581-15aa-4af8-92b0-3fbae3869ceb
+# ╠═288fecc0-a9c2-4a19-aa5c-9cbffeb95982
+# ╠═48992180-9233-4d63-89f5-f57fb15d58cd
+# ╠═57e0206e-6d3d-407f-8794-1edc2c0fab66
+# ╠═05351604-dddc-4663-80bc-a66e4c4aff08
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
