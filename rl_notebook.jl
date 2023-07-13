@@ -37,18 +37,11 @@ using ProfileVega
 # ╔═╡ ab36c00b-0a21-440e-af9c-0d2b45b0b8b5
 using StatProfilerHTML
 
+# ╔═╡ 879818d6-93bc-4124-b2a0-15dd2991738c
+using BenchmarkTools
+
 # ╔═╡ 9b590668-6fa3-4138-8118-eb1ffdf0c291
 how_long = 1000
-
-# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
-function run_test()
-    d = Dense(4=>1)
-    @test abs(mean_value(d) - mean_value(d)) < 0.5
-	@test abs(mean_value(d) - mean_value2(d)) < 0.5
-end
-
-# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
-run_test()
 
 # ╔═╡ 3882e4a7-bf84-49cc-a4f8-11db7ff90731
 import Zygote
@@ -106,9 +99,10 @@ function value2(model)
 	while i < max_steps
 		i+=1
 		choice = 1
+		the_state = state(c3)
         prob_chosen, grads_chosen  = Flux.withgradient(model) do mm
 	        # prob of picking 1
-            prob = mm(state(c3))[1] 
+            prob = mm(the_state)[1] 
 			#println(prob)
 			choice = rand()<prob ? 1 : 2
 			return choice == 1 ? prob : 1 - prob
@@ -125,6 +119,16 @@ function mean_value2(model)
     mean(value2(model)[1] for _ in 1:how_long )
 end
 
+# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
+function run_test()
+    d = Dense(4=>1)
+    @test abs(mean_value(d) - mean_value(d)) < 0.5
+	@test abs(mean_value(d) - mean_value2(d)) < 0.5
+end
+
+# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
+run_test()
+
 # ╔═╡ 194261d8-399e-4bbd-ac2d-269f78796a4d
 normalize(v) = (v.-mean(v))/std(v)
 
@@ -136,12 +140,21 @@ begin
 end
 
 # ╔═╡ 43b8a22d-4e61-4f83-b9e4-194ce6cdd0f7
+# ╠═╡ disabled = true
+#=╠═╡
 @report_opt train_loop(10)
+  ╠═╡ =#
 
 # ╔═╡ fafe5139-fada-4220-a3c3-9fd8b26aed9a
 # ╠═╡ disabled = true
 #=╠═╡
 @report_opt train_loop()
+  ╠═╡ =#
+
+# ╔═╡ 7f977297-cc87-453f-962c-46abb21d17c9
+# ╠═╡ disabled = true
+#=╠═╡
+@time train_loop(1000)
   ╠═╡ =#
 
 # ╔═╡ 9bd01014-a0ed-4ec0-b373-d0285dca1e96
@@ -174,7 +187,10 @@ statprofilehtml()
   ╠═╡ =#
 
 # ╔═╡ cab0fd58-a026-4ab3-ba2e-d9fe63b12819
+# ╠═╡ disabled = true
+#=╠═╡
  @profile train_loop(10)
+  ╠═╡ =#
 
 # ╔═╡ e68d263e-78be-4e15-bc02-ff4838d0e748
 # ╠═╡ disabled = true
@@ -193,7 +209,7 @@ unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
 function inner(model, opt)
 		scores, grads = unzip([value2(model) for _ in 1:100])
 	   
-	  ##println(mean(scores))
+	  #println(mean(scores))
 	  #collect(scores)
 	  #scores, normalize(scores)
 	  # This will give negative coefficients to 
@@ -207,7 +223,7 @@ function inner(model, opt)
 	  #println(net_grad)
 	  #println(value2(the_model)[2][1])
       #println(Base.summarysize.([scores, grads, net_grad, the_model, opt])  )
-	  opt, model = Optimisers.update(opt, model, net_grad[1])
+	  Optimisers.update(opt, model, net_grad[1])
 end
 
 # ╔═╡ 344797a6-6083-4201-afce-6ef338cf14e1
@@ -217,15 +233,12 @@ function train_loop(iters)
 	opt = Optimisers.setup(rule, the_model)
 	##println(mean_value(the_model))
 	for _ in 1:iters
-        inner(the_model, opt)
+        opt, the_model = inner(the_model, opt)
 	end
 end
 
 # ╔═╡ 5d3a5aef-e1a0-405b-b86a-00a0340264fb
-# ╠═╡ disabled = true
-#=╠═╡
-train_loop()
-  ╠═╡ =#
+train_loop(2000)
 
 # ╔═╡ 83f60297-511a-41d3-bd3b-c949e52326df
 @time train_loop(100)
@@ -233,15 +246,95 @@ train_loop()
 # ╔═╡ 7d984dfa-5422-4c64-97c9-4dfa363665f1
 @time train_loop(100)
 
-# ╔═╡ 7f977297-cc87-453f-962c-46abb21d17c9
-# ╠═╡ disabled = true
-#=╠═╡
-@time train_loop(1000)
-  ╠═╡ =#
+# ╔═╡ eb4dedbc-2786-4ce7-8e91-9eebc159e6d0
+@benchmark train_loop(10)
+
+# ╔═╡ 3c085ea5-a5da-40e1-baef-0136eff9e8a8
+m = Dense(4=>1)
+
+# ╔═╡ 08f7943e-af41-4b71-b582-6ae5e2ac1c6f
+@benchmark value2(m)
+
+# ╔═╡ 45ca0fbf-fa47-4bc6-be8c-5d6255c2e0bd
+@benchmark value(m)
+
+# ╔═╡ 84e3bf36-c6d6-4f49-a683-0c46007b7a3d
+@code_warntype value(m)
+
+# ╔═╡ da1718b3-5be2-4ef0-8eaf-c647830bff05
+@report_opt value(m)
+
+# ╔═╡ 101f5f45-c6f8-49d2-b62c-306388f97089
+@report_call value(m)
+
+# ╔═╡ 3958b805-ea77-435c-aef4-c98de806d90a
+@code_warntype value2(m)
+
+# ╔═╡ 9cd1f3a8-5d89-4d21-b8e7-aa95c33abc1a
+"Like value but also returns the gradient of model's
+parameters, averaged over all choices the model made.
+Adjusting the parameters by this gradient will make the model
+more likely to act as it does in this playout"
+function value3(model)::Tuple{Int64, Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}} }
+	max_steps = 100
+    c3 = CartPoleEnv()
+	i = 0
+	grad_list::Vector{Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}} = []
+	choices = []
+	
+    i+=1
+		choice = 1
+		the_state = state(c3)
+        sum_grad::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}  = Flux.withgradient(model) do mm
+	        # prob of picking 1
+            prob = mm(the_state)[1] 
+			#println(prob)
+			choice = rand()<prob ? 1 : 2
+			return choice == 1 ? prob : 1 - prob
+		end[2]
+	    c3(choice)
+	while i < max_steps
+		i+=1
+		choice = 1
+		the_state = state(c3)
+        sum_grad::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}  += Flux.withgradient(model) do mm
+	        # prob of picking 1
+            prob = mm(the_state)[1] 
+			#println(prob)
+			choice = rand()<prob ? 1 : 2
+			return choice == 1 ? prob : 1 - prob
+		end[2]
+	    c3(choice)
+	    is_terminated(c3) && break
+	end
+	i , sum_grad / i
+end
+
+# ╔═╡ 927bf55c-5ffc-4a98-8ab4-f92374ad4f13
+@code_warntype value3(m)
+
+# ╔═╡ c6718e4b-f027-45e0-936b-89de690397cf
+@benchmark value3(m)
+
+# ╔═╡ 0b9fca06-6615-4844-97a2-6337ee2c890a
+zero(Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}) = Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{zero(Matrix{Float32}), zero(Vector{Float32}), Nothing}}}
+
+# ╔═╡ 9cfbeb38-0b96-4177-ab8d-9be14f14320b
+zero(Float64)
+
+# ╔═╡ b9d3e279-084c-4f7e-b9d3-b043e2e06a86
+zero(Int64)
+
+# ╔═╡ 992b4d68-ef9c-4be1-85f3-f724de18bcdd
+zero(Vector{Float32})
+
+# ╔═╡ 56d8e9a3-698f-4034-8291-efc5973cbcc8
+@report_opt value2(m)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 Maybe = "334f122f-1118-46cc-837f-bff747ee6f78"
@@ -256,6 +349,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
+BenchmarkTools = "~1.3.2"
 Flux = "~0.13.4"
 JET = "~0.8.7"
 Maybe = "~0.1.7"
@@ -274,7 +368,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.1"
 manifest_format = "2.0"
-project_hash = "113529c8c6041f14ebf06fc6710f22393dc2c3a5"
+project_hash = "c92c699d1ec24bcde823225f98aa4c91f66f588c"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -382,6 +476,12 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 git-tree-sha1 = "aebf55e6d7795e02ca500a689d326ac979aaf89e"
 uuid = "9718e550-a3fa-408a-8086-8db961cd8217"
 version = "0.1.1"
+
+[[deps.BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "d9a9701b899b30332bbcb3e1679c41cce81fb0e8"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.3.2"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "43b1a4a8f797c1cddadf60499a8a077d4af2cd2d"
@@ -1853,5 +1953,22 @@ version = "1.0.1+0"
 # ╠═e68d263e-78be-4e15-bc02-ff4838d0e748
 # ╠═a476c0ee-9c9e-4fd2-9d8a-97428268bf8f
 # ╠═ae713b21-8f8b-49dc-b9e0-4031dff7dd1d
+# ╠═879818d6-93bc-4124-b2a0-15dd2991738c
+# ╠═eb4dedbc-2786-4ce7-8e91-9eebc159e6d0
+# ╠═3c085ea5-a5da-40e1-baef-0136eff9e8a8
+# ╠═08f7943e-af41-4b71-b582-6ae5e2ac1c6f
+# ╠═45ca0fbf-fa47-4bc6-be8c-5d6255c2e0bd
+# ╠═84e3bf36-c6d6-4f49-a683-0c46007b7a3d
+# ╠═da1718b3-5be2-4ef0-8eaf-c647830bff05
+# ╠═101f5f45-c6f8-49d2-b62c-306388f97089
+# ╠═3958b805-ea77-435c-aef4-c98de806d90a
+# ╠═9cd1f3a8-5d89-4d21-b8e7-aa95c33abc1a
+# ╠═9cfbeb38-0b96-4177-ab8d-9be14f14320b
+# ╠═927bf55c-5ffc-4a98-8ab4-f92374ad4f13
+# ╠═c6718e4b-f027-45e0-936b-89de690397cf
+# ╠═b9d3e279-084c-4f7e-b9d3-b043e2e06a86
+# ╠═0b9fca06-6615-4844-97a2-6337ee2c890a
+# ╠═992b4d68-ef9c-4be1-85f3-f724de18bcdd
+# ╠═56d8e9a3-698f-4034-8291-efc5973cbcc8
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
