@@ -10,11 +10,23 @@ using ReinforcementLearning
 # ╔═╡ a10ebf42-ff08-49d9-8c2b-2d685b619552
 using StatsBase
 
+# ╔═╡ f00b4d6a-d77d-4943-aff3-c1ae6c9dd934
+using Test
+
 # ╔═╡ 277527c7-8f78-4b8d-8552-75eb74547472
 using Flux
 
 # ╔═╡ 25559ec2-1e6a-440e-a96a-7c767236c489
 using Maybe
+
+# ╔═╡ 7ae55b9f-944c-4a6d-a00e-fc0bfccce9cc
+using Optimisers
+
+# ╔═╡ 1632deff-3e48-42e9-86f8-3fd0cd46ea16
+using JET
+
+# ╔═╡ 91ac3fa9-715c-4d60-aa9d-f78a04416b8f
+using Profile
 
 # ╔═╡ 130ba5b2-4edb-4218-8bee-09bdfa3e9e79
 run(
@@ -92,6 +104,9 @@ c
 
 # ╔═╡ 08d4523b-2340-42cc-a20e-f601b6a04d84
 state_space(c)
+
+# ╔═╡ b8565bf8-8891-45d2-a488-c0542f9e2812
+
 
 # ╔═╡ e0ca5efb-47d5-4acd-b973-dfbf60c09e3f
 cA=action_space(c)
@@ -256,8 +271,8 @@ sample([1,2],StatsBase.Weights([1,10]))
 # ╔═╡ 45a3593d-6d3d-491f-9e6d-a9f929660086
 [5 for x in 1:3]
 
-# ╔═╡ 821b2f08-3d87-4d95-9c8b-b393b59e668b
-[_->[1,100]]*2
+# ╔═╡ 9b590668-6fa3-4138-8118-eb1ffdf0c291
+how_long = 1000
 
 # ╔═╡ ba58b1c4-49d4-4f22-8602-8ec24d8ee1d9
 f(x) =x ^2
@@ -278,15 +293,10 @@ sample([1,2],StatsBase.Weights([0.1,1,3]))
 s = state(CartPoleEnv())
 
 # ╔═╡ f5632aa3-afa6-4a08-b23e-e1dbd308353f
+# ╠═╡ disabled = true
+#=╠═╡
 d = Dense(4=>2)
-
-# ╔═╡ cf4a14b2-9a81-4959-8367-0e002379883c
-Flux.withgradient(model -> model(s)[1], d)
-
-# ╔═╡ e2dbc27f-be0e-4778-8e0e-4f122fab93d8
-Flux.withgradient(d) do model
-   model(s)[1]
-   end
+  ╠═╡ =#
 
 # ╔═╡ f14b44dc-d74d-4649-8412-4aa6ef0ac432
 x, y = (3,2)
@@ -297,11 +307,8 @@ x
 # ╔═╡ c20fae2f-7869-4a6f-82a3-73daa7ff2c87
 y
 
-# ╔═╡ c0b40272-9947-4ca1-a62d-cd98b172c781
-d
-
 # ╔═╡ 0506c195-a045-4273-a192-fa54abd9ddd6
-model
+model = Dense(4=>1)
 
 # ╔═╡ 8c29f57d-a527-48fc-9021-cd6055fdedec
 d2 = Dense(4=>1)
@@ -329,6 +336,8 @@ begin
 	import Base.:+
 	+(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}) = (weight=a.weight+b.weight, bias = a.bias+b.bias, σ=nothing )
 	+(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}) = map(+,a,b)
+	+(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}) = (weight=a.weight+b.weight, bias = a.bias+b.bias, σ=nothing )
+	+(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}}, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}}) = map(+,a,b)
 end
 
 # ╔═╡ 59d4be4e-378e-4adc-be57-09c386625665
@@ -378,11 +387,11 @@ begin
 	print(xk)
 end
 
-# ╔═╡ 342afffc-9b82-4e2b-ad07-e588459b94bf
+# ╔═╡ 2e7ad486-0b51-445e-ad96-a70de6a79e8e
 "Uses model to guide decisions on cartpoleenv
 and returns the total number of moves until
 termination"
-function value(model) 
+function old_value(model) 
 	max_steps = 100
     c3 = CartPoleEnv()
 	i = 0
@@ -397,18 +406,53 @@ function value(model)
 end
 
 # ╔═╡ c61b1458-52bc-464f-9ed4-ac67a1e1ac68
-value(x->[1,10])
+old_value(x->[1,10])
 
-# ╔═╡ 3447f889-db39-4936-8f40-63861a7e8504
-function mean_value(model)
-    mean(value(model) for _ in 1:100)
+# ╔═╡ 42eb009c-c98d-4977-81ed-ec86170da853
+function mean_old_value(model)
+    mean(old_value(model) for _ in 1:how_long )
 end
 
 # ╔═╡ 0e03068a-fa34-450e-b6f4-06e81a2e1a47
-mean_value(x->[1,1])
+mean_old_value(x->[1,1])
+
+# ╔═╡ 5af790d6-70ee-45f6-ae2d-b3a652594737
+mean_old_value(x->[0.5,0.5])
+
+# ╔═╡ 626f7707-3164-4b9c-a950-2804a252da87
+mean_old_value(x->[0.1])
 
 # ╔═╡ 64dcc304-2ede-4b4b-a272-efa5a0026453
-mean_value(x->[10,1])
+mean_old_value(x->[10,1])
+
+# ╔═╡ 342afffc-9b82-4e2b-ad07-e588459b94bf
+"Uses model to guide decisions on cartpoleenv
+and returns the total number of moves until
+termination"
+function value(model) 
+	max_steps = 100
+    c3 = CartPoleEnv()
+	i = 0
+	while i < max_steps
+		i+=1
+        prob = model(state(c3))[1]
+		choice = rand()<prob ? 1 : 2		
+	    c3(choice)
+	    is_terminated(c3) && break
+	end
+	i
+end
+
+# ╔═╡ 3447f889-db39-4936-8f40-63861a7e8504
+function mean_value(model)
+    mean(value(model) for _ in 1:how_long )
+end
+
+# ╔═╡ 3e72f1c6-de38-4719-90ee-bc7a8eb7e3c5
+mean_value(x->[0.5])
+
+# ╔═╡ 864a7048-7c90-4e82-80d7-d3915d56e7be
+mean_value(x->[1])
 
 # ╔═╡ aa4c80ad-a7db-4a37-a09c-b4d0e0448a87
 begin
@@ -484,9 +528,10 @@ function value2(model)
 	while i < max_steps
 		i+=1
 		choice = 1
-        prob_chosen, grads_chosen  = Flux.withgradient(d2) do model
+        prob_chosen, grads_chosen  = Flux.withgradient(model) do mm
 	        # prob of picking 1
-            prob = model(state(c3))[1]
+            prob = mm(state(c3))[1] 
+			#println(prob)
 			choice = rand()<prob ? 1 : 2
 			return choice == 1 ? prob : 1 - prob
         end
@@ -496,6 +541,38 @@ function value2(model)
 	end
 	i , sum(grad_list) / i
 end
+
+# ╔═╡ 9517e49e-1b4c-454f-8230-4007240a4316
+function mean_value2(model)
+    mean(value2(model)[1] for _ in 1:how_long )
+end
+
+# ╔═╡ 7e8c80b9-8b81-4163-9f19-79db52d1f29e
+begin
+    d = Dense(4=>1)
+    mean_value(d),  mean_value(d), mean_value2(d), mean_value2(d)
+end
+
+# ╔═╡ cf4a14b2-9a81-4959-8367-0e002379883c
+Flux.withgradient(model -> model(s)[1], d)
+
+# ╔═╡ e2dbc27f-be0e-4778-8e0e-4f122fab93d8
+Flux.withgradient(d) do model
+   model(s)[1]
+   end
+
+# ╔═╡ c0b40272-9947-4ca1-a62d-cd98b172c781
+d
+
+# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
+function run_test()
+    d = Dense(4=>1)
+    @test abs(mean_value(d) - mean_value(d)) < 0.5
+	@test abs(mean_value(d) - mean_value2(d)) < 0.5
+end
+
+# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
+run_test()
 
 # ╔═╡ 4f53a96c-a6ef-49df-bbc4-9ebb3e3d9bfb
 value2(Dense(4=>1))
@@ -509,6 +586,16 @@ normalize(v) = (v.-mean(v))/std(v)
 # ╔═╡ 8b6b9c19-035b-4c49-b6a6-8d7a55d15c8e
 normalize([1,2])
 
+# ╔═╡ a2cc4273-55e1-4557-a359-2ebe9df6a2c2
+begin
+	import Base.:*
+	*(a::Float64, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}) = (weight=a*b.weight, bias = a*b.bias, σ=nothing )
+	*(a::Float64, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}) = a .* b
+end
+
+# ╔═╡ 821b2f08-3d87-4d95-9c8b-b393b59e668b
+[_->[1,100]]*2
+
 # ╔═╡ 01849ee6-8c38-458d-9c62-d4deadbdeeed
 [4.0]/5
 
@@ -521,21 +608,134 @@ g+g
 # ╔═╡ 8b3d655c-2415-4b64-bf2c-4181ee54f12d
 g
 
+# ╔═╡ 513f05d5-7388-44b0-89c7-071d1582907d
+4.0*g
+
 # ╔═╡ 5f751ddd-e157-442c-9fc2-801f3ca0ebde
 zeros(g)
+
+# ╔═╡ f7ff82fd-19c8-499a-9328-e8b0ca78c919
+# ╠═╡ disabled = true
+#=╠═╡
+opt = Flux.setup(Flux.Adam(0.01), model)
+  ╠═╡ =#
+
+# ╔═╡ d4927856-3dfc-4be9-9304-32c98bd71ae3
+rule = Optimisers.Adam()
+
+# ╔═╡ 011806c8-4694-4bf7-87d7-4eee080e293a
+opt = Optimisers.setup(rule, model)
+
+# ╔═╡ 25d4dd2f-ed2a-4d8e-a099-b32df28a612d
+opt2, model2 = Optimisers.update(opt, model, value2(model)[2][1]);
+
+# ╔═╡ 9bd01014-a0ed-4ec0-b373-d0285dca1e96
+# 2023 07 13 2024: 
+# @time train_loop()  # 2nd time around
+# 1.600064 seconds (10.15 M allocations: 416.659 MiB, 8.33% gc time)
+
+# ╔═╡ a476c0ee-9c9e-4fd2-9d8a-97428268bf8f
+Profile.print()
+
+# ╔═╡ 88c029e0-80dd-4413-9829-38b43fe8a06f
+yy = [x for x in zip( (1,2), (3,4))]
+
+# ╔═╡ ab6b6b62-4619-4e93-bfb8-321c599162ba
+xyy, yyy = zip([(1,2) for _ in 1:10]...)
+
+# ╔═╡ 24814c73-7e5c-4e40-8999-6dd0d1f0761a
+collect(zip([(1,2) for _ in 1:10]...))
+
+# ╔═╡ 70b0c0b2-50c5-47a3-95f6-92ae425c615a
+xyy
+
+# ╔═╡ 28a1f5ab-6a17-48ce-b0b5-be7f2d3d2f8f
+yyy
+
+# ╔═╡ ce9d1227-9634-4b89-8f0d-2cb5151b97cb
+Vector(1:4)
+
+# ╔═╡ e5177e69-b63e-4933-8e2c-0c2597f5dcba
+fieldnames
+
+# ╔═╡ ae713b21-8f8b-49dc-b9e0-4031dff7dd1d
+#https://stackoverflow.com/a/53645744
+unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
+
+# ╔═╡ 344797a6-6083-4201-afce-6ef338cf14e1
+function train_loop()
+	the_model = Dense(4=>1)
+	rule = Optimisers.Adam()
+	opt = Optimisers.setup(rule, the_model)
+	##println(mean_value(the_model))
+	for _ in 1:100
+	  scores, grads = unzip([value2(the_model) for _ in 1:100])
+	  ##println(mean(scores))
+	  #collect(scores)
+	  #scores, normalize(scores)
+	  # This will give negative coefficients to 
+	  # games that were longer than average.
+	  # The optimizer will move in the opposite
+	  # direction from the gradient, and hence
+	  # push us towards longer games
+	  net_grad = sum(-normalize(scores) .* grads)
+	  #println(net_grad)
+	  #println(value2(the_model)[2][1])
+	  opt, the_model = Optimisers.update(opt, the_model, net_grad[1]);
+	end
+end
+
+# ╔═╡ 5d3a5aef-e1a0-405b-b86a-00a0340264fb
+# ╠═╡ disabled = true
+#=╠═╡
+train_loop()
+  ╠═╡ =#
+
+# ╔═╡ fafe5139-fada-4220-a3c3-9fd8b26aed9a
+# ╠═╡ disabled = true
+#=╠═╡
+@report_opt train_loop()
+  ╠═╡ =#
+
+# ╔═╡ 83f60297-511a-41d3-bd3b-c949e52326df
+@time train_loop()
+
+# ╔═╡ 7d984dfa-5422-4c64-97c9-4dfa363665f1
+@time train_loop()
+
+# ╔═╡ cab0fd58-a026-4ab3-ba2e-d9fe63b12819
+# ╠═╡ disabled = true
+#=╠═╡
+ @profile train_loop()
+  ╠═╡ =#
+
+# ╔═╡ 4c55ccdb-5b99-4638-ad3e-38d1ae9f910d
+k = ((5,6),(3,4))
+
+# ╔═╡ 59a70725-93af-41f3-b82c-8bb557aa3164
+eltype(k)
+
+# ╔═╡ b5b08a24-2e8d-46d2-8519-03ed648113e4
+fieldnames(eltype(k))
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 Maybe = "334f122f-1118-46cc-837f-bff747ee6f78"
+Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
+Profile = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 ReinforcementLearning = "158674fc-8238-5cab-b5ba-03dfc80d1318"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 Flux = "~0.13.4"
+JET = "~0.8.7"
 Maybe = "~0.1.7"
+Optimisers = "~0.2.9"
 ReinforcementLearning = "~0.10.2"
 StatsBase = "~0.33.21"
 Zygote = "~0.6.62"
@@ -547,13 +747,13 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.1"
 manifest_format = "2.0"
-project_hash = "a72bc6dd32bb0609206593202c4bcf9d17f59a7a"
+project_hash = "9d84420aecd664eff77826728780b1212b02814c"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "8bc0aaec0ca548eb6cf5f0d7d16351650c1ee956"
+git-tree-sha1 = "cad4c758c0038eea30394b1b671526921ca85b21"
 uuid = "621f4979-c628-5d54-868e-fcf4e3e8185c"
-version = "1.3.2"
+version = "1.4.0"
 weakdeps = ["ChainRulesCore"]
 
     [deps.AbstractFFTs.extensions]
@@ -681,9 +881,9 @@ version = "0.5.1"
 
 [[deps.ChainRules]]
 deps = ["Adapt", "ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "61549d9b52c88df34d21bd306dba1d43bb039c87"
+git-tree-sha1 = "2afc496e94d15a1af5502625246d172361542133"
 uuid = "082447d4-558c-5d27-93f4-14fc19e9eca2"
-version = "1.51.0"
+version = "1.52.0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
@@ -696,6 +896,12 @@ deps = ["Adapt"]
 git-tree-sha1 = "a05b83d278a5c52111af07e2b2df64bf7b122f8c"
 uuid = "9de3a189-e0c0-4e15-ba3b-b14b9fb0aec1"
 version = "0.1.10"
+
+[[deps.CodeTracking]]
+deps = ["InteractiveUtils", "UUIDs"]
+git-tree-sha1 = "d730914ef30a06732bdd9f763f6cc32e92ffbff1"
+uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
+version = "1.3.1"
 
 [[deps.ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
@@ -782,9 +988,9 @@ version = "1.15.0"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "d1fff3a548102f48987a52a2e0d114fa97d730f0"
+git-tree-sha1 = "cf25ccb972fec4e4817764d01c82386ae94f77b4"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.13"
+version = "0.18.14"
 
 [[deps.DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -824,9 +1030,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[deps.Distributions]]
 deps = ["FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns", "Test"]
-git-tree-sha1 = "db40d3aff76ea6a3619fdd15a8c78299221a2394"
+git-tree-sha1 = "e76a3281de2719d7c81ed62c6ea7057380c87b1d"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.97"
+version = "0.25.98"
 
     [deps.Distributions.extensions]
     DistributionsChainRulesCoreExt = "ChainRulesCore"
@@ -1005,9 +1211,9 @@ version = "0.4.7"
 
 [[deps.HypergeometricFunctions]]
 deps = ["DualNumbers", "LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
-git-tree-sha1 = "0ec02c648befc2f94156eaef13b0f38106212f3f"
+git-tree-sha1 = "ce7ea9cc5db29563b1fe20196b6d23ab3b111384"
 uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
-version = "0.3.17"
+version = "0.3.18"
 
 [[deps.IRTools]]
 deps = ["InteractiveUtils", "MacroTools", "Test"]
@@ -1037,9 +1243,9 @@ version = "0.5.4"
 
 [[deps.InverseFunctions]]
 deps = ["Test"]
-git-tree-sha1 = "6667aadd1cdee2c6cd068128b3d226ebc4fb0c67"
+git-tree-sha1 = "edd1c1ac227767c75e8518defdf6e48dbfa7c3b0"
 uuid = "3587e190-3f89-42d0-90ee-14403ec27112"
-version = "0.1.9"
+version = "0.1.10"
 
 [[deps.IrrationalConstants]]
 git-tree-sha1 = "630b497eafcc20001bba38a4651b327dcfc491d2"
@@ -1056,11 +1262,23 @@ git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
 uuid = "82899510-4779-5014-852e-03e436cf321d"
 version = "1.0.0"
 
+[[deps.JET]]
+deps = ["InteractiveUtils", "JuliaInterpreter", "LoweredCodeUtils", "MacroTools", "Pkg", "PrecompileTools", "Preferences", "Revise", "Test"]
+git-tree-sha1 = "06a42720332b8442d1d651370917e40771c503a3"
+uuid = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
+version = "0.8.7"
+
 [[deps.JLLWrappers]]
 deps = ["Preferences"]
 git-tree-sha1 = "abc9885a7ca2052a736a600f7fa66209f96506e1"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
 version = "1.4.1"
+
+[[deps.JuliaInterpreter]]
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+git-tree-sha1 = "6a125e6a4cb391e0b9adbd1afa9e771c2179f8ef"
+uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
+version = "0.9.23"
 
 [[deps.JuliaVariables]]
 deps = ["MLStyle", "NameResolution"]
@@ -1139,6 +1357,12 @@ version = "0.3.24"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+
+[[deps.LoweredCodeUtils]]
+deps = ["JuliaInterpreter"]
+git-tree-sha1 = "60168780555f3e663c536500aa790b6368adc02a"
+uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
+version = "2.3.0"
 
 [[deps.MLStyle]]
 git-tree-sha1 = "bc38dff0548128765760c79eb7388a4b37fae2c8"
@@ -1290,6 +1514,10 @@ version = "0.2.0"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+
 [[deps.ProgressLogging]]
 deps = ["Logging", "SHA", "UUIDs"]
 git-tree-sha1 = "80d919dee55b9c50e8d9e2da5eeafff3fe58b539"
@@ -1375,6 +1603,12 @@ git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.3.0"
 
+[[deps.Revise]]
+deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "Requires", "UUIDs", "Unicode"]
+git-tree-sha1 = "1e597b93700fa4045d7189afa7c004e0584ea548"
+uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
+version = "3.5.3"
+
 [[deps.Rmath]]
 deps = ["Random", "Rmath_jll"]
 git-tree-sha1 = "f65dcb5fa46aee0cf9ed6274ccbd597adc49aa7b"
@@ -1451,10 +1685,14 @@ uuid = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
 version = "0.8.7"
 
 [[deps.StaticArrays]]
-deps = ["LinearAlgebra", "Random", "StaticArraysCore", "Statistics"]
-git-tree-sha1 = "832afbae2a45b4ae7e831f86965469a24d1d8a83"
+deps = ["LinearAlgebra", "Random", "StaticArraysCore"]
+git-tree-sha1 = "0da7e6b70d1bb40b1ace3b576da9ea2992f76318"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.5.26"
+version = "1.6.0"
+weakdeps = ["Statistics"]
+
+    [deps.StaticArrays.extensions]
+    StaticArraysStatisticsExt = "Statistics"
 
 [[deps.StaticArraysCore]]
 git-tree-sha1 = "6b7ba252635a5eff6a0b0664a41ee140a1c9e72a"
@@ -1586,13 +1824,14 @@ uuid = "b8865327-cd53-5732-bb35-84acbb429228"
 version = "2.12.4"
 
 [[deps.Unitful]]
-deps = ["ConstructionBase", "Dates", "LinearAlgebra", "Random"]
-git-tree-sha1 = "ba4aa36b2d5c98d6ed1f149da916b3ba46527b2b"
+deps = ["Dates", "LinearAlgebra", "Random"]
+git-tree-sha1 = "c4d2a349259c8eba66a00a540d550f122a3ab228"
 uuid = "1986cc42-f94f-5a68-af5c-568840ba703d"
-version = "1.14.0"
-weakdeps = ["InverseFunctions"]
+version = "1.15.0"
+weakdeps = ["ConstructionBase", "InverseFunctions"]
 
     [deps.Unitful.extensions]
+    ConstructionBaseUnitfulExt = "ConstructionBase"
     InverseFunctionsUnitfulExt = "InverseFunctions"
 
 [[deps.UnsafeAtomics]]
@@ -1673,6 +1912,7 @@ version = "17.4.0+0"
 # ╠═ecafd5d5-6b1e-4c79-a7d3-f8f89300a022
 # ╠═1c66df5e-7ce7-4dae-83b0-db5a5c1dff9c
 # ╠═08d4523b-2340-42cc-a20e-f601b6a04d84
+# ╠═b8565bf8-8891-45d2-a488-c0542f9e2812
 # ╠═e0ca5efb-47d5-4acd-b973-dfbf60c09e3f
 # ╠═d9d5d980-8d98-4025-b577-1843f2b9565f
 # ╠═7ce97ffa-ed8b-4fba-bb7d-d24a98e1b5be
@@ -1702,18 +1942,30 @@ version = "17.4.0+0"
 # ╠═b770c356-5767-40f3-abfa-3a2521bf4077
 # ╠═20549a9d-75b4-4e46-b77e-1447e6b997cc
 # ╠═29bacf52-f616-4525-ad08-69ffcda8f7bc
-# ╠═342afffc-9b82-4e2b-ad07-e588459b94bf
+# ╠═2e7ad486-0b51-445e-ad96-a70de6a79e8e
 # ╠═d1c0777a-0d03-4b4e-9b14-1d9d9cebee88
 # ╠═024cbb3b-b3f1-4bb4-9d75-58605db993d3
 # ╠═a10ebf42-ff08-49d9-8c2b-2d685b619552
 # ╠═75512332-527c-458c-a235-1e5ebdb24d98
 # ╠═0e03068a-fa34-450e-b6f4-06e81a2e1a47
+# ╠═5af790d6-70ee-45f6-ae2d-b3a652594737
+# ╠═3e72f1c6-de38-4719-90ee-bc7a8eb7e3c5
+# ╠═864a7048-7c90-4e82-80d7-d3915d56e7be
+# ╠═626f7707-3164-4b9c-a950-2804a252da87
 # ╠═c61b1458-52bc-464f-9ed4-ac67a1e1ac68
 # ╠═64dcc304-2ede-4b4b-a272-efa5a0026453
 # ╠═aa4c80ad-a7db-4a37-a09c-b4d0e0448a87
 # ╠═45a3593d-6d3d-491f-9e6d-a9f929660086
+# ╠═9b590668-6fa3-4138-8118-eb1ffdf0c291
 # ╠═3447f889-db39-4936-8f40-63861a7e8504
+# ╠═9517e49e-1b4c-454f-8230-4007240a4316
+# ╠═7e8c80b9-8b81-4163-9f19-79db52d1f29e
+# ╠═f00b4d6a-d77d-4943-aff3-c1ae6c9dd934
+# ╠═b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
+# ╠═4be52fa9-7506-4639-9e08-a88abdf57d9c
+# ╠═42eb009c-c98d-4977-81ed-ec86170da853
 # ╠═2776eb11-8191-42fe-ae95-d08d0c65798d
+# ╠═342afffc-9b82-4e2b-ad07-e588459b94bf
 # ╠═c65a1343-e23e-49e7-9562-fb0e58c70bf7
 # ╠═4f53a96c-a6ef-49df-bbc4-9ebb3e3d9bfb
 # ╠═821b2f08-3d87-4d95-9c8b-b393b59e668b
@@ -1754,10 +2006,38 @@ version = "17.4.0+0"
 # ╠═d70c43c5-0565-43fd-a26a-a39a95e89cda
 # ╠═a5142872-e996-4955-a553-fe020229cd2f
 # ╠═a50b6f90-6110-44b3-bc15-581b577ce5db
+# ╠═a2cc4273-55e1-4557-a359-2ebe9df6a2c2
 # ╠═01849ee6-8c38-458d-9c62-d4deadbdeeed
 # ╠═00c07740-9f44-4099-964a-0f647090fdce
 # ╠═9843fb32-03c5-431b-9a9b-8ec17a2c9c69
 # ╠═8b3d655c-2415-4b64-bf2c-4181ee54f12d
+# ╠═513f05d5-7388-44b0-89c7-071d1582907d
 # ╠═5f751ddd-e157-442c-9fc2-801f3ca0ebde
+# ╠═f7ff82fd-19c8-499a-9328-e8b0ca78c919
+# ╠═7ae55b9f-944c-4a6d-a00e-fc0bfccce9cc
+# ╠═d4927856-3dfc-4be9-9304-32c98bd71ae3
+# ╠═011806c8-4694-4bf7-87d7-4eee080e293a
+# ╠═25d4dd2f-ed2a-4d8e-a099-b32df28a612d
+# ╠═1632deff-3e48-42e9-86f8-3fd0cd46ea16
+# ╠═344797a6-6083-4201-afce-6ef338cf14e1
+# ╠═5d3a5aef-e1a0-405b-b86a-00a0340264fb
+# ╠═fafe5139-fada-4220-a3c3-9fd8b26aed9a
+# ╠═91ac3fa9-715c-4d60-aa9d-f78a04416b8f
+# ╠═83f60297-511a-41d3-bd3b-c949e52326df
+# ╠═7d984dfa-5422-4c64-97c9-4dfa363665f1
+# ╠═9bd01014-a0ed-4ec0-b373-d0285dca1e96
+# ╠═cab0fd58-a026-4ab3-ba2e-d9fe63b12819
+# ╠═a476c0ee-9c9e-4fd2-9d8a-97428268bf8f
+# ╠═88c029e0-80dd-4413-9829-38b43fe8a06f
+# ╠═ab6b6b62-4619-4e93-bfb8-321c599162ba
+# ╠═24814c73-7e5c-4e40-8999-6dd0d1f0761a
+# ╠═70b0c0b2-50c5-47a3-95f6-92ae425c615a
+# ╠═28a1f5ab-6a17-48ce-b0b5-be7f2d3d2f8f
+# ╠═ce9d1227-9634-4b89-8f0d-2cb5151b97cb
+# ╠═e5177e69-b63e-4933-8e2c-0c2597f5dcba
+# ╠═ae713b21-8f8b-49dc-b9e0-4031dff7dd1d
+# ╠═4c55ccdb-5b99-4638-ad3e-38d1ae9f910d
+# ╠═59a70725-93af-41f3-b82c-8bb557aa3164
+# ╠═b5b08a24-2e8d-46d2-8519-03ed648113e4
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
