@@ -85,50 +85,6 @@ begin
 	/(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}, b::Int64) = a ./b
 end
 
-# ╔═╡ c65a1343-e23e-49e7-9562-fb0e58c70bf7
-"Like value but also returns the gradient of model's
-parameters, averaged over all choices the model made.
-Adjusting the parameters by this gradient will make the model
-more likely to act as it does in this playout"
-function value2(model) 
-	max_steps = 100
-    c3 = CartPoleEnv()
-	i = 0
-	grad_list = []
-	choices = []
-	while i < max_steps
-		i+=1
-		choice = 1
-		the_state = state(c3)
-        prob_chosen, grads_chosen  = Flux.withgradient(model) do mm
-	        # prob of picking 1
-            prob = mm(the_state)[1] 
-			#println(prob)
-			choice = rand()<prob ? 1 : 2
-			return choice == 1 ? prob : 1 - prob
-        end
-		push!(grad_list,grads_chosen)
-	    c3(choice)
-	    is_terminated(c3) && break
-	end
-	i , sum(grad_list) / i
-end
-
-# ╔═╡ 9517e49e-1b4c-454f-8230-4007240a4316
-function mean_value2(model)
-    mean(value2(model)[1] for _ in 1:how_long )
-end
-
-# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
-function run_test()
-    d = Dense(4=>1)
-    @test abs(mean_value(d) - mean_value(d)) < 0.5
-	@test abs(mean_value(d) - mean_value2(d)) < 0.5
-end
-
-# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
-run_test()
-
 # ╔═╡ 194261d8-399e-4bbd-ac2d-269f78796a4d
 normalize(v) = (v.-mean(v))/std(v)
 
@@ -151,8 +107,50 @@ end
 @report_opt train_loop()
   ╠═╡ =#
 
+# ╔═╡ 83f60297-511a-41d3-bd3b-c949e52326df
+# ╠═╡ disabled = true
+#=╠═╡
+@time train_loop(10)
+  ╠═╡ =#
+
+# ╔═╡ 7d984dfa-5422-4c64-97c9-4dfa363665f1
+# ╠═╡ disabled = true
+#=╠═╡
+@time train_loop(100)
+  ╠═╡ =#
+
+# ╔═╡ 29856ae9-199b-4110-975e-84323b4cce17
+# ╠═╡ disabled = true
+#=╠═╡
+@time train_loop(100)
+  ╠═╡ =#
+
+# ╔═╡ 10eb6772-bdb7-495c-86f4-987a7282a0eb
+# ╠═╡ disabled = true
+#=╠═╡
+@time train_loop(100)
+  ╠═╡ =#
+
+# ╔═╡ 55eb8a75-8936-4068-9f13-6b7f0bbdae99
+# ╠═╡ disabled = true
+#=╠═╡
+train_loop(1000)
+  ╠═╡ =#
+
 # ╔═╡ 79bea52d-49ce-4e17-9956-b8d827b7d6b9
 # Achieves 40.843 game steps with train_loop(1000)
+
+# ╔═╡ c4e91730-4e06-4c47-b30b-6c6efffd0410
+# ╠═╡ disabled = true
+#=╠═╡
+train_loop(100)
+  ╠═╡ =#
+
+# ╔═╡ 68125a71-3e66-4015-9a66-6678055f5ff5
+# ╠═╡ disabled = true
+#=╠═╡
+train_loop(1000)
+  ╠═╡ =#
 
 # ╔═╡ 7f977297-cc87-453f-962c-46abb21d17c9
 # ╠═╡ disabled = true
@@ -181,7 +179,10 @@ ProfileVega.view()
   ╠═╡ =#
 
 # ╔═╡ ab02baf2-a158-41d1-bce9-6e65c9d9ed87
+# ╠═╡ disabled = true
+#=╠═╡
 statprofilehtml()
+  ╠═╡ =#
 
 # ╔═╡ d89da777-d2b9-4239-bbcf-f80f1b5e642a
 
@@ -205,11 +206,153 @@ pprof()
   ╠═╡ =#
 
 # ╔═╡ a476c0ee-9c9e-4fd2-9d8a-97428268bf8f
+# ╠═╡ disabled = true
+#=╠═╡
 Profile.print()
+  ╠═╡ =#
 
 # ╔═╡ ae713b21-8f8b-49dc-b9e0-4031dff7dd1d
 #https://stackoverflow.com/a/53645744
 unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
+
+# ╔═╡ eb4dedbc-2786-4ce7-8e91-9eebc159e6d0
+# ╠═╡ disabled = true
+#=╠═╡
+@benchmark train_loop(10)
+  ╠═╡ =#
+
+# ╔═╡ 3c085ea5-a5da-40e1-baef-0136eff9e8a8
+m = Dense(4=>1)
+
+# ╔═╡ 45ca0fbf-fa47-4bc6-be8c-5d6255c2e0bd
+@benchmark value(m)
+
+# ╔═╡ 84e3bf36-c6d6-4f49-a683-0c46007b7a3d
+@code_warntype value(m)
+
+# ╔═╡ da1718b3-5be2-4ef0-8eaf-c647830bff05
+@report_opt value(m)
+
+# ╔═╡ 101f5f45-c6f8-49d2-b62c-306388f97089
+@report_call value(m)
+
+# ╔═╡ 5f7658aa-d96e-45bd-9942-98f138fc8535
+# ╠═╡ disabled = true
+#=╠═╡
+m2 = Dense(4=>1)
+  ╠═╡ =#
+
+# ╔═╡ 63a2ffc2-aefe-4599-a042-e3d42447ac3f
+#=╠═╡
+m2.bias
+  ╠═╡ =#
+
+# ╔═╡ 108093f2-9496-4f75-9b04-cbefe9fad675
+#=╠═╡
+m2.weight  .= [0. 0. 0. -1. ]
+  ╠═╡ =#
+
+# ╔═╡ 94a9129e-113f-41ad-bf17-b93f3e4a1fdd
+#=╠═╡
+mean_value(m2)
+  ╠═╡ =#
+
+# ╔═╡ e4ed6a37-82ae-45b6-a7c7-b6b0ef19439d
+#=╠═╡
+m2.bias
+  ╠═╡ =#
+
+# ╔═╡ 5490a57f-5bf4-40c3-9532-86ad6aadb8a6
+#=╠═╡
+m2.weight
+  ╠═╡ =#
+
+# ╔═╡ 0d960581-15aa-4af8-92b0-3fbae3869ceb
+m3=Dense([-1.1152266 0.023610264 0.60426503 -0.49385205], [0.40893412] )
+
+# ╔═╡ 288fecc0-a9c2-4a19-aa5c-9cbffeb95982
+mean_value(m3)
+
+# ╔═╡ 48992180-9233-4d63-89f5-f57fb15d58cd
+Dense
+
+# ╔═╡ 57e0206e-6d3d-407f-8794-1edc2c0fab66
+m.bias
+
+# ╔═╡ 05351604-dddc-4663-80bc-a66e4c4aff08
+Dense
+
+# ╔═╡ 4c452fad-2ca3-4694-99c9-9c147af13e73
+m2 = Chain(Dense(4=>2), softmax)
+
+# ╔═╡ e62457c8-a81b-47e7-8574-ce41efffef83
+m2( [1, 2, 3, 4])[1]
+
+# ╔═╡ bfaf492f-9664-4281-9fae-7bc02696ead0
+m2( [1, 2, 3, 4])
+
+# ╔═╡ 2108b686-4675-42e9-8fbe-bd5a11e101f5
+mean_value(Chain(Dense(4=>2), softmax))
+
+# ╔═╡ 4d8c2c4f-18dd-49a6-a369-ac098fbd3357
+function add_grads(a, b)
+    println(a)
+	println( b)
+	println(a[1])
+		println(a[1][1
+		])
+end
+
+# ╔═╡ c65a1343-e23e-49e7-9562-fb0e58c70bf7
+"Like value but also returns the gradient of model's
+parameters, averaged over all choices the model made.
+Adjusting the parameters by this gradient will make the model
+more likely to act as it does in this playout"
+function value2(model) 
+	max_steps = 100
+    c3 = CartPoleEnv()
+	i = 0
+	grad_list = []
+	choices = []
+	while i < max_steps
+		i+=1
+		choice = 1
+		the_state = state(c3)
+        prob_chosen, grads_chosen  = Flux.withgradient(model) do mm
+	        # prob of picking 1
+            prob = mm(the_state)[1] 
+			#println(prob)
+			choice = rand()<prob ? 1 : 2
+			return choice == 1 ? prob : 1 - prob
+        end
+		push!(grad_list,grads_chosen)
+	    c3(choice)
+	    is_terminated(c3) && break
+	end
+	add_grads(grad_list[1], grad_list[2])
+	i , sum(grad_list) / i
+end
+
+# ╔═╡ 9517e49e-1b4c-454f-8230-4007240a4316
+function mean_value2(model)
+    mean(value2(model)[1] for _ in 1:how_long )
+end
+
+# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
+function run_test()
+    d = Dense(4=>1)
+    @test abs(mean_value(d) - mean_value(d)) < 0.5
+	@test abs(mean_value(d) - mean_value2(d)) < 0.5
+end
+
+# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
+run_test()
+
+# ╔═╡ 956e3dbc-cfea-42da-8082-4e5ce4a7c4b1
+mean_value2(Chain(Dense(4=>2), softmax))
+
+# ╔═╡ 88145d6a-6460-4f57-9e36-ca73b88f002c
+mean_value2(Chain(Dense(4=>3, relu), Dense(3=>2),softmax))
 
 # ╔═╡ 5b5973fc-cfa1-4529-b72d-a65fa8771f17
 function inner(model, opt, runs)
@@ -245,71 +388,44 @@ function train_loop(iters, runs_per_iter)
 	println(the_model.weight)
 end
 
-# ╔═╡ 83f60297-511a-41d3-bd3b-c949e52326df
+# ╔═╡ fed8b5e5-0040-4972-90fa-de52ff612ba1
 # ╠═╡ disabled = true
 #=╠═╡
-@time train_loop(10)
+train_loop(100,1000)
   ╠═╡ =#
 
-# ╔═╡ 7d984dfa-5422-4c64-97c9-4dfa363665f1
+# ╔═╡ fadc6568-4f23-4d7b-aeac-50d92d184666
 # ╠═╡ disabled = true
 #=╠═╡
-@time train_loop(100)
+train_loop(1000,100)
   ╠═╡ =#
 
-# ╔═╡ 29856ae9-199b-4110-975e-84323b4cce17
+# ╔═╡ ecd79dd2-6f3d-4081-844d-25bcc5e92ed2
 # ╠═╡ disabled = true
 #=╠═╡
-@time train_loop(100)
+train_loop(1000,100)
   ╠═╡ =#
 
-# ╔═╡ 10eb6772-bdb7-495c-86f4-987a7282a0eb
+# ╔═╡ f2f41afc-e3e6-4420-80dc-045652ef4e2e
 # ╠═╡ disabled = true
 #=╠═╡
-@time train_loop(100)
+train_loop(100,1000)
   ╠═╡ =#
 
-# ╔═╡ 55eb8a75-8936-4068-9f13-6b7f0bbdae99
+# ╔═╡ 4b148b5d-39b8-4ff6-8ec6-9f3f38eb7e29
 # ╠═╡ disabled = true
 #=╠═╡
-train_loop(1000)
+train_loop(1000,10)
   ╠═╡ =#
 
-# ╔═╡ c4e91730-4e06-4c47-b30b-6c6efffd0410
+# ╔═╡ 6bdc8595-1e1a-40d7-b627-b421c317eedc
 # ╠═╡ disabled = true
 #=╠═╡
-train_loop(100)
+train_loop(1000,10)
   ╠═╡ =#
-
-# ╔═╡ 68125a71-3e66-4015-9a66-6678055f5ff5
-# ╠═╡ disabled = true
-#=╠═╡
-train_loop(1000)
-  ╠═╡ =#
-
-# ╔═╡ eb4dedbc-2786-4ce7-8e91-9eebc159e6d0
-# ╠═╡ disabled = true
-#=╠═╡
-@benchmark train_loop(10)
-  ╠═╡ =#
-
-# ╔═╡ 3c085ea5-a5da-40e1-baef-0136eff9e8a8
-m = Dense(4=>1)
 
 # ╔═╡ 08f7943e-af41-4b71-b582-6ae5e2ac1c6f
 @benchmark value2(m)
-
-# ╔═╡ 45ca0fbf-fa47-4bc6-be8c-5d6255c2e0bd
-@benchmark value(m)
-
-# ╔═╡ 84e3bf36-c6d6-4f49-a683-0c46007b7a3d
-@code_warntype value(m)
-
-# ╔═╡ da1718b3-5be2-4ef0-8eaf-c647830bff05
-@report_opt value(m)
-
-# ╔═╡ 101f5f45-c6f8-49d2-b62c-306388f97089
-@report_call value(m)
 
 # ╔═╡ 3958b805-ea77-435c-aef4-c98de806d90a
 @code_warntype value2(m)
@@ -317,72 +433,21 @@ m = Dense(4=>1)
 # ╔═╡ 56d8e9a3-698f-4034-8291-efc5973cbcc8
 @report_opt value2(m)
 
-# ╔═╡ 5f7658aa-d96e-45bd-9942-98f138fc8535
-# ╠═╡ disabled = true
-#=╠═╡
-m2 = Dense(4=>1)
-  ╠═╡ =#
-
-# ╔═╡ 63a2ffc2-aefe-4599-a042-e3d42447ac3f
-#=╠═╡
-m2.bias
-  ╠═╡ =#
-
-# ╔═╡ 108093f2-9496-4f75-9b04-cbefe9fad675
-#=╠═╡
-m2.weight  .= [0. 0. 0. -1. ]
-  ╠═╡ =#
-
-# ╔═╡ 94a9129e-113f-41ad-bf17-b93f3e4a1fdd
-#=╠═╡
-mean_value(m2)
-  ╠═╡ =#
-
-# ╔═╡ e4ed6a37-82ae-45b6-a7c7-b6b0ef19439d
-#=╠═╡
-m2.bias
-  ╠═╡ =#
-
-# ╔═╡ 5490a57f-5bf4-40c3-9532-86ad6aadb8a6
-#=╠═╡
-m2.weight
-  ╠═╡ =#
-
-# ╔═╡ fed8b5e5-0040-4972-90fa-de52ff612ba1
-train_loop(100,1000)
-
-# ╔═╡ fadc6568-4f23-4d7b-aeac-50d92d184666
-train_loop(1000,100)
-
-# ╔═╡ ecd79dd2-6f3d-4081-844d-25bcc5e92ed2
-train_loop(1000,100)
-
-# ╔═╡ f2f41afc-e3e6-4420-80dc-045652ef4e2e
-train_loop(100,1000)
-
-# ╔═╡ 4b148b5d-39b8-4ff6-8ec6-9f3f38eb7e29
-train_loop(1000,10)
-
-# ╔═╡ 6bdc8595-1e1a-40d7-b627-b421c317eedc
-train_loop(1000,10)
-
 # ╔═╡ fec94493-eefc-4182-91d5-329897775763
 value2(Chain(Dense(4=>10),Dense(10=>1)))
 
-# ╔═╡ 0d960581-15aa-4af8-92b0-3fbae3869ceb
-m3=Dense([-1.1152266 0.023610264 0.60426503 -0.49385205], [0.40893412] )
+# ╔═╡ 48a596d7-2306-44b5-9b3e-408eee296742
+md"""
+Looks like a gradient of a chain has the form:
+1-element Tuple a, containing a named tuple b.
+b has one key, layers. b["layers"] is a tuple
+of c1, c2, .... Each of the c's is either a named
+tuple containing a weight, a bias, and sigma = nothing.
+Or it's just nothing, in the case where the layer is
+a softmax etc
 
-# ╔═╡ 288fecc0-a9c2-4a19-aa5c-9cbffeb95982
-mean_value(m3)
-
-# ╔═╡ 48992180-9233-4d63-89f5-f57fb15d58cd
-Dense
-
-# ╔═╡ 57e0206e-6d3d-407f-8794-1edc2c0fab66
-m.bias
-
-# ╔═╡ 05351604-dddc-4663-80bc-a66e4c4aff08
-Dense
+((layers = ((weight = Float32[0.0 0.0 -0.0 0.0; -0.0 -0.0 0.0 -0.0; -0.0049724816 -0.0039834105 0.004610585 -0.0016869778], bias = Float32[0.0, -0.0, -0.13413496], σ = nothing), (weight = Float32[0.0 0.0 0.007637123; -0.0 -0.0 -0.007637123], bias = Float32[0.2499832, -0.2499832], σ = nothing), nothing),),)
+"""
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1973,7 +2038,6 @@ version = "1.0.1+0"
 # ╠═b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
 # ╠═4be52fa9-7506-4639-9e08-a88abdf57d9c
 # ╠═342afffc-9b82-4e2b-ad07-e588459b94bf
-# ╠═c65a1343-e23e-49e7-9562-fb0e58c70bf7
 # ╠═277527c7-8f78-4b8d-8552-75eb74547472
 # ╠═194261d8-399e-4bbd-ac2d-269f78796a4d
 # ╠═3882e4a7-bf84-49cc-a4f8-11db7ff90731
@@ -2039,5 +2103,14 @@ version = "1.0.1+0"
 # ╠═48992180-9233-4d63-89f5-f57fb15d58cd
 # ╠═57e0206e-6d3d-407f-8794-1edc2c0fab66
 # ╠═05351604-dddc-4663-80bc-a66e4c4aff08
+# ╠═4c452fad-2ca3-4694-99c9-9c147af13e73
+# ╠═e62457c8-a81b-47e7-8574-ce41efffef83
+# ╠═bfaf492f-9664-4281-9fae-7bc02696ead0
+# ╠═2108b686-4675-42e9-8fbe-bd5a11e101f5
+# ╠═956e3dbc-cfea-42da-8082-4e5ce4a7c4b1
+# ╠═88145d6a-6460-4f57-9e36-ca73b88f002c
+# ╠═c65a1343-e23e-49e7-9562-fb0e58c70bf7
+# ╠═4d8c2c4f-18dd-49a6-a369-ac098fbd3357
+# ╠═48a596d7-2306-44b5-9b3e-408eee296742
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
