@@ -59,8 +59,7 @@ end
 "Uses model to guide decisions on cartpoleenv
 and returns the total number of moves until
 termination"
-function value(model) 
-	max_steps = 100
+function value(model; max_steps = 100) 
     c3 = CartPoleEnv()
 	i = 0
 	while i < max_steps
@@ -74,8 +73,8 @@ function value(model)
 end
 
 # ╔═╡ 3447f889-db39-4936-8f40-63861a7e8504
-function mean_value(model)
-    mean(value(model) for _ in 1:how_long )
+function mean_value(model; max_steps = 100)
+    mean(value(model,max_steps=max_steps) for _ in 1:how_long )
 end
 
 # ╔═╡ a50b6f90-6110-44b3-bc15-581b577ce5db
@@ -222,7 +221,7 @@ unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
   ╠═╡ =#
 
 # ╔═╡ 3c085ea5-a5da-40e1-baef-0136eff9e8a8
-m = Dense(4=>1)
+m = Chain(Dense(4=>1))
 
 # ╔═╡ 45ca0fbf-fa47-4bc6-be8c-5d6255c2e0bd
 @benchmark value(m)
@@ -267,12 +266,6 @@ m2.bias
 m2.weight
   ╠═╡ =#
 
-# ╔═╡ 0d960581-15aa-4af8-92b0-3fbae3869ceb
-m3=Dense([-1.1152266 0.023610264 0.60426503 -0.49385205], [0.40893412] )
-
-# ╔═╡ 288fecc0-a9c2-4a19-aa5c-9cbffeb95982
-mean_value(m3)
-
 # ╔═╡ 48992180-9233-4d63-89f5-f57fb15d58cd
 Dense
 
@@ -282,17 +275,18 @@ m.bias
 # ╔═╡ 05351604-dddc-4663-80bc-a66e4c4aff08
 Dense
 
-# ╔═╡ 4c452fad-2ca3-4694-99c9-9c147af13e73
-m2 = Chain(Dense(4=>2), softmax)
-
-# ╔═╡ e62457c8-a81b-47e7-8574-ce41efffef83
-m2( [1, 2, 3, 4])[1]
-
-# ╔═╡ bfaf492f-9664-4281-9fae-7bc02696ead0
-m2( [1, 2, 3, 4])
-
 # ╔═╡ 2108b686-4675-42e9-8fbe-bd5a11e101f5
 mean_value(Chain(Dense(4=>2), softmax))
+
+# ╔═╡ 97417a67-0749-4ae0-bd48-dd000ee9eac2
+i = 9
+
+
+# ╔═╡ d73af3b6-2a82-4c2d-883c-469437378821
+typeof(one(Float32)/i)
+
+# ╔═╡ f9f1e243-ba0a-456d-b218-abe9f452d26d
+typeof(1/i)
 
 # ╔═╡ 4d8c2c4f-18dd-49a6-a369-ac098fbd3357
 function add_grads(a, b)
@@ -301,6 +295,61 @@ function add_grads(a, b)
 	println(a[1])
 		println(a[1][1
 		])
+end
+
+# ╔═╡ 48a596d7-2306-44b5-9b3e-408eee296742
+md"""
+Looks like a gradient of a chain has the form:
+1-element Tuple a, containing a named tuple b.
+b has one key, layers. b["layers"] is a tuple
+of c1, c2, .... Each of the c's is either a named
+tuple containing a weight, a bias, and sigma = nothing.
+Or it's just nothing, in the case where the layer is
+a softmax etc
+
+((layers = ((weight = Float32[0.0 0.0 -0.0 0.0; -0.0 -0.0 0.0 -0.0; -0.0049724816 -0.0039834105 0.004610585 -0.0016869778], bias = Float32[0.0, -0.0, -0.13413496], σ = nothing), (weight = Float32[0.0 0.0 0.007637123; -0.0 -0.0 -0.007637123], bias = Float32[0.2499832, -0.2499832], σ = nothing), nothing),),)
+"""
+
+# ╔═╡ 053a6034-b95e-4e36-a02b-2b5a4f68423c
+mul_scal_grad_chain4(a::Nothing, s::Float32) = nothing
+
+# ╔═╡ 30113064-75c8-4970-ad40-3033436880e3
+mul_scal_grad_chain4(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, s::Float32 ) = (weight=a.weight*s, bias = a.bias*s, σ=nothing )
+
+# ╔═╡ 6836a3a0-1817-45de-8edc-d6f3b9a59fc2
+function mul_scal_grad_chain3(a,s::Float32)
+    return mul_scal_grad_chain4.(a,s)
+end
+
+# ╔═╡ 287cc341-d327-4daf-8e71-b80f3beb017e
+mul_scal_grad_chain2(a, s::Float32) = (layers = mul_scal_grad_chain3(a[1],s),)
+
+# ╔═╡ 064825df-9182-4d7e-b2ee-486675573393
+mul_scal_grad_chain(a, s::Float32) = (mul_scal_grad_chain2(a[1],s),)
+
+# ╔═╡ 788842d4-7c1f-46ef-b8b0-599764b7b428
+function add_grad_chain4(a::Nothing,b::Nothing)
+    return nothing
+end
+
+# ╔═╡ d3576111-4444-4f20-b760-2d81f0a6f664
+function add_grad_chain4(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}})
+    return (weight=a.weight+b.weight, bias = a.bias+b.bias, σ=nothing )
+end
+
+# ╔═╡ 151b065e-f294-4ef8-820b-b9324e117d9c
+function add_grad_chain3(a,b)
+    return add_grad_chain4.(a,b)
+end
+
+# ╔═╡ 53bd7558-da62-4e17-b8b0-4d4bcb43f6f7
+function add_grad_chain2(a, b)
+    return (layers = add_grad_chain3(a[1],b[1]),)
+end
+
+# ╔═╡ d304a360-898d-426d-b6d4-4b6ee3bd2943
+function add_grad_chain(a, b)
+    return (add_grad_chain2(a[1],b[1]),)
 end
 
 # ╔═╡ c65a1343-e23e-49e7-9562-fb0e58c70bf7
@@ -329,8 +378,8 @@ function value2(model)
 	    c3(choice)
 	    is_terminated(c3) && break
 	end
-	add_grads(grad_list[1], grad_list[2])
-	i , sum(grad_list) / i
+	add_grad_chain(grad_list[1], grad_list[2])
+	i , mul_scal_grad_chain( reduce(add_grad_chain, grad_list), one(Float32) / i)
 end
 
 # ╔═╡ 9517e49e-1b4c-454f-8230-4007240a4316
@@ -368,7 +417,9 @@ function inner(model, opt, runs)
 	  # push us towards longer games
 	  #print(typeof(scores))
 	  #print(typeof(convert(Vector{Float32},normalize(scores))))
-	  net_grad = sum(-convert(Vector{Float32},normalize(scores)) .* grads)
+	  net_grad = reduce(add_grad_chain, 
+		  mul_scal_grad_chain.(grads, 
+		  -convert(Vector{Float32},normalize(scores)) ) )
 	  #println(net_grad)
 	  #println(value2(the_model)[2][1])
       #println(Base.summarysize.([scores, grads, net_grad, the_model, opt])  )
@@ -376,16 +427,14 @@ function inner(model, opt, runs)
 end
 
 # ╔═╡ 344797a6-6083-4201-afce-6ef338cf14e1
-function train_loop(iters, runs_per_iter)
-	the_model = Dense(4=>1)
+function train_loop(the_model, iters, runs_per_iter)
 	rule = Optimisers.Adam()
 	opt = Optimisers.setup(rule, the_model)
 	##println(mean_value(the_model))
 	for _ in 1:iters
         opt, the_model = inner(the_model, opt, runs_per_iter)
 	end
-	println(the_model.bias)
-	println(the_model.weight)
+	the_model
 end
 
 # ╔═╡ fed8b5e5-0040-4972-90fa-de52ff612ba1
@@ -436,18 +485,77 @@ train_loop(1000,10)
 # ╔═╡ fec94493-eefc-4182-91d5-329897775763
 value2(Chain(Dense(4=>10),Dense(10=>1)))
 
-# ╔═╡ 48a596d7-2306-44b5-9b3e-408eee296742
-md"""
-Looks like a gradient of a chain has the form:
-1-element Tuple a, containing a named tuple b.
-b has one key, layers. b["layers"] is a tuple
-of c1, c2, .... Each of the c's is either a named
-tuple containing a weight, a bias, and sigma = nothing.
-Or it's just nothing, in the case where the layer is
-a softmax etc
+# ╔═╡ db552ebf-b80b-4bb3-afc8-13dd072db940
+(foo=3,)
 
-((layers = ((weight = Float32[0.0 0.0 -0.0 0.0; -0.0 -0.0 0.0 -0.0; -0.0049724816 -0.0039834105 0.004610585 -0.0016869778], bias = Float32[0.0, -0.0, -0.13413496], σ = nothing), (weight = Float32[0.0 0.0 0.007637123; -0.0 -0.0 -0.007637123], bias = Float32[0.2499832, -0.2499832], σ = nothing), nothing),),)
-"""
+# ╔═╡ c9f95559-fe36-4f17-bca8-8517caa5d01c
+g = ((layers = ((weight = Float32[0.0 0.0 -0.0 0.0; -0.0 -0.0 0.0 -0.0; -0.0049724816 -0.0039834105 0.004610585 -0.0016869778], bias = Float32[0.0, -0.0, -0.13413496], σ = nothing), (weight = Float32[0.0 0.0 0.007637123; -0.0 -0.0 -0.007637123], bias = Float32[0.2499832, -0.2499832], σ = nothing), nothing),),)
+
+# ╔═╡ 9572abdd-f934-4733-ac27-b8f302f9bfbd
+add_grad_chain(g,g)
+
+# ╔═╡ 5cf76fd1-3688-467b-af65-607c3c1892d1
+# Next step is to define special functions for multiplying a scalar by a chain grad (and division is just 1/x)
+
+# ╔═╡ df57d71a-cf54-4b65-a430-d81665e16ab9
+m1 = Chain(Dense(4=>3, relu), Dense(3=>2),softmax)
+
+# ╔═╡ e62457c8-a81b-47e7-8574-ce41efffef83
+m2( [1, 2, 3, 4])[1]
+
+# ╔═╡ bfaf492f-9664-4281-9fae-7bc02696ead0
+m2( [1, 2, 3, 4])
+
+# ╔═╡ 46927cd4-ddb6-4bee-9d1e-2794034abe48
+m1.layers[1].weight
+
+# ╔═╡ 2b26270d-5ccd-463f-80a5-4eee4bf0439c
+m2.layers[1].weight
+
+# ╔═╡ 288fecc0-a9c2-4a19-aa5c-9cbffeb95982
+mean_value(m3)
+
+# ╔═╡ 94718dc4-ab7b-46bb-8e66-2e21cba162f2
+m4 = train_loop(m3,100,100)
+
+# ╔═╡ cbf3fcd1-ab1f-422c-b611-8a79b105ec56
+m5 = train_loop(m4,100,100)
+
+# ╔═╡ b96d59c4-9684-4945-9828-90c1bff9f3f9
+m6 = train_loop(m5,100,100)
+
+# ╔═╡ 343c520d-61bf-4b83-9fd4-3028d47b5168
+mean_value(m6)
+
+# ╔═╡ b66d2c21-160e-49ce-bd6e-12ef2f04d74a
+m7 = train_loop(m6,1000,100)
+
+# ╔═╡ 21b4a207-df33-4262-afb9-cab8bc933e8f
+mean_value(m7)
+
+# ╔═╡ 1493cf9c-0e54-4b81-b986-6efa6b512d95
+mean_value(m7, max_steps=1000)
+
+# ╔═╡ 6c25e268-bcef-41da-88fb-b6e3d0293788
+value(m7, max_steps = 200)
+
+# ╔═╡ 4c452fad-2ca3-4694-99c9-9c147af13e73
+# ╠═╡ disabled = true
+#=╠═╡
+m2 = Chain(Dense(4=>2), softmax)
+  ╠═╡ =#
+
+# ╔═╡ 5560b842-6c93-4115-bb0d-6d79bd713e50
+m3 = train_loop(m2,100,100)
+
+# ╔═╡ 0d960581-15aa-4af8-92b0-3fbae3869ceb
+# ╠═╡ disabled = true
+#=╠═╡
+m3=Dense([-1.1152266 0.023610264 0.60426503 -0.49385205], [0.40893412] )
+  ╠═╡ =#
+
+# ╔═╡ be3ae2d0-3711-43fd-a7c6-74b6d8ccfef3
+m2 = train_loop(m1,100,100)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2110,7 +2218,37 @@ version = "1.0.1+0"
 # ╠═956e3dbc-cfea-42da-8082-4e5ce4a7c4b1
 # ╠═88145d6a-6460-4f57-9e36-ca73b88f002c
 # ╠═c65a1343-e23e-49e7-9562-fb0e58c70bf7
+# ╠═97417a67-0749-4ae0-bd48-dd000ee9eac2
+# ╠═d73af3b6-2a82-4c2d-883c-469437378821
+# ╠═f9f1e243-ba0a-456d-b218-abe9f452d26d
 # ╠═4d8c2c4f-18dd-49a6-a369-ac098fbd3357
 # ╠═48a596d7-2306-44b5-9b3e-408eee296742
+# ╠═d304a360-898d-426d-b6d4-4b6ee3bd2943
+# ╠═064825df-9182-4d7e-b2ee-486675573393
+# ╠═287cc341-d327-4daf-8e71-b80f3beb017e
+# ╠═053a6034-b95e-4e36-a02b-2b5a4f68423c
+# ╠═30113064-75c8-4970-ad40-3033436880e3
+# ╠═53bd7558-da62-4e17-b8b0-4d4bcb43f6f7
+# ╠═6836a3a0-1817-45de-8edc-d6f3b9a59fc2
+# ╠═151b065e-f294-4ef8-820b-b9324e117d9c
+# ╠═788842d4-7c1f-46ef-b8b0-599764b7b428
+# ╠═d3576111-4444-4f20-b760-2d81f0a6f664
+# ╠═db552ebf-b80b-4bb3-afc8-13dd072db940
+# ╠═c9f95559-fe36-4f17-bca8-8517caa5d01c
+# ╠═9572abdd-f934-4733-ac27-b8f302f9bfbd
+# ╠═5cf76fd1-3688-467b-af65-607c3c1892d1
+# ╠═df57d71a-cf54-4b65-a430-d81665e16ab9
+# ╠═be3ae2d0-3711-43fd-a7c6-74b6d8ccfef3
+# ╠═46927cd4-ddb6-4bee-9d1e-2794034abe48
+# ╠═2b26270d-5ccd-463f-80a5-4eee4bf0439c
+# ╠═5560b842-6c93-4115-bb0d-6d79bd713e50
+# ╠═94718dc4-ab7b-46bb-8e66-2e21cba162f2
+# ╠═cbf3fcd1-ab1f-422c-b611-8a79b105ec56
+# ╠═b96d59c4-9684-4945-9828-90c1bff9f3f9
+# ╠═343c520d-61bf-4b83-9fd4-3028d47b5168
+# ╠═b66d2c21-160e-49ce-bd6e-12ef2f04d74a
+# ╠═21b4a207-df33-4262-afb9-cab8bc933e8f
+# ╠═1493cf9c-0e54-4b81-b986-6efa6b512d95
+# ╠═6c25e268-bcef-41da-88fb-b6e3d0293788
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
