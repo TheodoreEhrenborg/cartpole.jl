@@ -60,7 +60,7 @@ end
 and returns the total number of moves until
 termination"
 function value(model; max_steps = 100) 
-    c3 = CartPoleEnv()
+    c3 = CartPoleEnv(max_steps=max_steps)
 	i = 0
 	while i < max_steps
 		i+=1
@@ -75,6 +75,24 @@ end
 # ╔═╡ 3447f889-db39-4936-8f40-63861a7e8504
 function mean_value(model; max_steps = 100)
     mean(value(model,max_steps=max_steps) for _ in 1:how_long )
+end
+
+# ╔═╡ 15ac24f3-0230-4f75-af53-7e1af8e9d4b3
+"Uses model to guide decisions on cartpoleenv
+and returns the total number of moves until
+termination. No randomness"
+function value_max(model; max_steps = 100) 
+    c3 = CartPoleEnv(max_steps=max_steps)
+	i = 0
+	while i < max_steps
+		i+=1
+        prob = model(state(c3))[1]
+		#println(prob)
+		choice = 0.5<prob ? 1 : 2		
+	    c3(choice)
+	    is_terminated(c3) && break
+	end
+	i
 end
 
 # ╔═╡ a50b6f90-6110-44b3-bc15-581b577ce5db
@@ -357,9 +375,8 @@ end
 parameters, averaged over all choices the model made.
 Adjusting the parameters by this gradient will make the model
 more likely to act as it does in this playout"
-function value2(model) 
-	max_steps = 100
-    c3 = CartPoleEnv()
+function value2(model; max_steps=100) 
+    c3 = CartPoleEnv(max_steps=max_steps)
 	i = 0
 	grad_list = []
 	choices = []
@@ -389,7 +406,7 @@ end
 
 # ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
 function run_test()
-    d = Dense(4=>1)
+    d = Chain(Dense(4=>1))
     @test abs(mean_value(d) - mean_value(d)) < 0.5
 	@test abs(mean_value(d) - mean_value2(d)) < 0.5
 end
@@ -404,8 +421,8 @@ mean_value2(Chain(Dense(4=>2), softmax))
 mean_value2(Chain(Dense(4=>3, relu), Dense(3=>2),softmax))
 
 # ╔═╡ 5b5973fc-cfa1-4529-b72d-a65fa8771f17
-function inner(model, opt, runs)
-		scores, grads = unzip([value2(model) for _ in 1:runs])
+function inner(model, opt, runs, max_steps)
+		scores, grads = unzip([value2(model, max_steps=max_steps) for _ in 1:runs])
 	   
 	  println(mean(scores))
 	  #collect(scores)
@@ -427,12 +444,12 @@ function inner(model, opt, runs)
 end
 
 # ╔═╡ 344797a6-6083-4201-afce-6ef338cf14e1
-function train_loop(the_model, iters, runs_per_iter)
+function train_loop(the_model; iters=100, runs_per_iter=100, max_steps=100)
 	rule = Optimisers.Adam()
 	opt = Optimisers.setup(rule, the_model)
 	##println(mean_value(the_model))
 	for _ in 1:iters
-        opt, the_model = inner(the_model, opt, runs_per_iter)
+        opt, the_model = inner(the_model, opt, runs_per_iter, max_steps)
 	end
 	the_model
 end
@@ -516,19 +533,19 @@ m2.layers[1].weight
 mean_value(m3)
 
 # ╔═╡ 94718dc4-ab7b-46bb-8e66-2e21cba162f2
-m4 = train_loop(m3,100,100)
+m4 = train_loop(m3)
 
 # ╔═╡ cbf3fcd1-ab1f-422c-b611-8a79b105ec56
-m5 = train_loop(m4,100,100)
+m5 = train_loop(m4)
 
 # ╔═╡ b96d59c4-9684-4945-9828-90c1bff9f3f9
-m6 = train_loop(m5,100,100)
+m6 = train_loop(m5)
 
 # ╔═╡ 343c520d-61bf-4b83-9fd4-3028d47b5168
 mean_value(m6)
 
 # ╔═╡ b66d2c21-160e-49ce-bd6e-12ef2f04d74a
-m7 = train_loop(m6,1000,100)
+m7 = train_loop(m6;iters=1000)
 
 # ╔═╡ 21b4a207-df33-4262-afb9-cab8bc933e8f
 mean_value(m7)
@@ -536,8 +553,38 @@ mean_value(m7)
 # ╔═╡ 1493cf9c-0e54-4b81-b986-6efa6b512d95
 mean_value(m7, max_steps=1000)
 
+# ╔═╡ f2aaca41-4a17-4f20-85ba-c0ae11ed875e
+
+
 # ╔═╡ 6c25e268-bcef-41da-88fb-b6e3d0293788
 value(m7, max_steps = 200)
+
+# ╔═╡ d1d676e7-527a-4bc7-a380-b54689d8dbb0
+value_max(m7, max_steps = 200)
+
+# ╔═╡ c6aa1a92-237b-4e9e-b455-0cfe9a20d99b
+m8 = train_loop(m7;max_steps = 200)
+
+# ╔═╡ 139e884a-fd83-4a15-8653-9fdd76e54882
+mean_value(m8, max_steps=1000)
+
+# ╔═╡ 223f0d82-ccbb-4fe4-b006-7141a690eda2
+m9 = train_loop(m8;max_steps = 200, iters=1000)
+
+# ╔═╡ 8611444a-5b97-41a7-add5-8f894f3cfd0d
+mean_value(m9, max_steps=1000)
+
+# ╔═╡ 71da9797-573b-4e08-a77d-0bea7959c463
+m10 = train_loop(m8;max_steps = 200, iters=500)
+
+# ╔═╡ 076a98d2-c1bc-409b-b1f5-b29c68dca6d7
+mean_value(m10, max_steps=1000)
+
+# ╔═╡ e7bdbbf7-b4da-48d8-bdb0-ba202a408a72
+value_max(m10, max_steps = 1000)
+
+# ╔═╡ 66ed1157-c4bb-45f8-b8af-f9ba6ec71f64
+m11 = train_loop(m10;max_steps = 300, iters=500)
 
 # ╔═╡ 4c452fad-2ca3-4694-99c9-9c147af13e73
 # ╠═╡ disabled = true
@@ -546,7 +593,7 @@ m2 = Chain(Dense(4=>2), softmax)
   ╠═╡ =#
 
 # ╔═╡ 5560b842-6c93-4115-bb0d-6d79bd713e50
-m3 = train_loop(m2,100,100)
+m3 = train_loop(m2)
 
 # ╔═╡ 0d960581-15aa-4af8-92b0-3fbae3869ceb
 # ╠═╡ disabled = true
@@ -555,7 +602,7 @@ m3=Dense([-1.1152266 0.023610264 0.60426503 -0.49385205], [0.40893412] )
   ╠═╡ =#
 
 # ╔═╡ be3ae2d0-3711-43fd-a7c6-74b6d8ccfef3
-m2 = train_loop(m1,100,100)
+m2 = train_loop(m1)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2146,6 +2193,7 @@ version = "1.0.1+0"
 # ╠═b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
 # ╠═4be52fa9-7506-4639-9e08-a88abdf57d9c
 # ╠═342afffc-9b82-4e2b-ad07-e588459b94bf
+# ╠═15ac24f3-0230-4f75-af53-7e1af8e9d4b3
 # ╠═277527c7-8f78-4b8d-8552-75eb74547472
 # ╠═194261d8-399e-4bbd-ac2d-269f78796a4d
 # ╠═3882e4a7-bf84-49cc-a4f8-11db7ff90731
@@ -2249,6 +2297,16 @@ version = "1.0.1+0"
 # ╠═b66d2c21-160e-49ce-bd6e-12ef2f04d74a
 # ╠═21b4a207-df33-4262-afb9-cab8bc933e8f
 # ╠═1493cf9c-0e54-4b81-b986-6efa6b512d95
+# ╠═f2aaca41-4a17-4f20-85ba-c0ae11ed875e
 # ╠═6c25e268-bcef-41da-88fb-b6e3d0293788
+# ╠═d1d676e7-527a-4bc7-a380-b54689d8dbb0
+# ╠═c6aa1a92-237b-4e9e-b455-0cfe9a20d99b
+# ╠═139e884a-fd83-4a15-8653-9fdd76e54882
+# ╠═223f0d82-ccbb-4fe4-b006-7141a690eda2
+# ╠═8611444a-5b97-41a7-add5-8f894f3cfd0d
+# ╠═71da9797-573b-4e08-a77d-0bea7959c463
+# ╠═076a98d2-c1bc-409b-b1f5-b29c68dca6d7
+# ╠═e7bdbbf7-b4da-48d8-bdb0-ba202a408a72
+# ╠═66ed1157-c4bb-45f8-b8af-f9ba6ec71f64
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
