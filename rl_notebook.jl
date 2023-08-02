@@ -586,6 +586,33 @@ value_max(m10, max_steps = 1000)
 # ╔═╡ 66ed1157-c4bb-45f8-b8af-f9ba6ec71f64
 m11 = train_loop(m10;max_steps = 300, iters=500)
 
+# ╔═╡ 30731751-ed31-4aec-9d20-10b813881d0d
+mean_value(m11, max_steps=1000)
+
+# ╔═╡ 2dbfaf3f-4a51-41ff-a419-a01231c77236
+m12 = train_loop(m11;max_steps = 1000, iters=100)
+
+# ╔═╡ 1b7d5cae-01ac-46c7-9e43-d0d7c9f47317
+mean_value(m12, max_steps=1000)
+
+# ╔═╡ f7f4563c-3955-4473-a0e0-08e2fd0e3b4a
+mean_value(m12, max_steps=2000)
+
+# ╔═╡ 144456b9-b521-4d98-858c-2d81de1c707b
+mean_value(m12, max_steps=3000)
+
+# ╔═╡ 72cc54c2-30b1-4703-a45b-8a0c78bf215f
+mean_value(m12, max_steps=10000)
+
+# ╔═╡ 2f16ca8b-fad5-4f14-a8e5-07aae0fa1df6
+value_max(m12, max_steps = 10000)
+
+# ╔═╡ 34b51055-a7a8-446c-801b-15ed4ecdd473
+value_max(m12, max_steps = 20000)
+
+# ╔═╡ feb46d13-8548-4222-abf2-e4122f613ccd
+value_max(m12, max_steps = 20000)
+
 # ╔═╡ 4c452fad-2ca3-4694-99c9-9c147af13e73
 # ╠═╡ disabled = true
 #=╠═╡
@@ -2308,5 +2335,14 @@ version = "1.0.1+0"
 # ╠═076a98d2-c1bc-409b-b1f5-b29c68dca6d7
 # ╠═e7bdbbf7-b4da-48d8-bdb0-ba202a408a72
 # ╠═66ed1157-c4bb-45f8-b8af-f9ba6ec71f64
+# ╠═30731751-ed31-4aec-9d20-10b813881d0d
+# ╠═2dbfaf3f-4a51-41ff-a419-a01231c77236
+# ╠═1b7d5cae-01ac-46c7-9e43-d0d7c9f47317
+# ╠═f7f4563c-3955-4473-a0e0-08e2fd0e3b4a
+# ╠═144456b9-b521-4d98-858c-2d81de1c707b
+# ╠═72cc54c2-30b1-4703-a45b-8a0c78bf215f
+# ╠═2f16ca8b-fad5-4f14-a8e5-07aae0fa1df6
+# ╠═34b51055-a7a8-446c-801b-15ed4ecdd473
+# ╠═feb46d13-8548-4222-abf2-e4122f613ccd
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
