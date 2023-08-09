@@ -4,11 +4,11 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ a10ebf42-ff08-49d9-8c2b-2d685b619552
-using StatsBase
-
 # ╔═╡ bde90012-e6b4-11ed-058f-2786b140fd16
 using ReinforcementLearning
+
+# ╔═╡ c655ef32-e93b-4997-a782-c235b3796b37
+using StatsBase # for mean
 
 # ╔═╡ f00b4d6a-d77d-4943-aff3-c1ae6c9dd934
 using Test
@@ -16,26 +16,11 @@ using Test
 # ╔═╡ 277527c7-8f78-4b8d-8552-75eb74547472
 using Flux
 
-# ╔═╡ 25559ec2-1e6a-440e-a96a-7c767236c489
-using Maybe
-
 # ╔═╡ 7ae55b9f-944c-4a6d-a00e-fc0bfccce9cc
 using Optimisers
 
 # ╔═╡ 9b590668-6fa3-4138-8118-eb1ffdf0c291
 how_long = 1000
-
-# ╔═╡ 3882e4a7-bf84-49cc-a4f8-11db7ff90731
-import Zygote
-
-# ╔═╡ a5142872-e996-4955-a553-fe020229cd2f
-begin
-	import Base.:+
-	+(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}) = (weight=a.weight+b.weight, bias = a.bias+b.bias, σ=nothing )
-	+(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}) = map(+,a,b)
-	+(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}) = (weight=a.weight+b.weight, bias = a.bias+b.bias, σ=nothing )
-	+(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}}, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}}) = map(+,a,b)
-end
 
 # ╔═╡ 342afffc-9b82-4e2b-ad07-e588459b94bf
 "Uses model to guide decisions on cartpoleenv
@@ -77,28 +62,8 @@ function value_max(model; max_steps = 100)
 	i
 end
 
-# ╔═╡ a50b6f90-6110-44b3-bc15-581b577ce5db
-begin
-	import Base.:/
-	/(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, b::Int64) = (weight=a.weight/b, bias = a.bias/b, σ=nothing )
-	/(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}, b::Int64) = a ./b
-end
-
 # ╔═╡ 194261d8-399e-4bbd-ac2d-269f78796a4d
 normalize(v) = (v.-mean(v))/std(v)
-
-# ╔═╡ d056337c-9ad3-429b-9a27-ddbf10fca954
-n(v) = (v.-mean(v))/std(v)
-
-# ╔═╡ 9e2dce55-9214-4c12-bd8f-ee4049a7df19
-n([1,2,3])
-
-# ╔═╡ a2cc4273-55e1-4557-a359-2ebe9df6a2c2
-begin
-	import Base.:*
-	*(a::Float32, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}) = (weight=a*b.weight, bias = a*b.bias, σ=nothing )
-	*(a::Float32, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}) = a .* b
-end
 
 # ╔═╡ ae713b21-8f8b-49dc-b9e0-4031dff7dd1d
 #https://stackoverflow.com/a/53645744
@@ -423,20 +388,16 @@ value_max(m12, max_steps = 20000)
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
-Maybe = "334f122f-1118-46cc-837f-bff747ee6f78"
 Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
 ReinforcementLearning = "158674fc-8238-5cab-b5ba-03dfc80d1318"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 Flux = "~0.13.4"
-Maybe = "~0.1.7"
 Optimisers = "~0.2.9"
 ReinforcementLearning = "~0.10.2"
 StatsBase = "~0.33.21"
-Zygote = "~0.6.62"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -445,7 +406,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.1"
 manifest_format = "2.0"
-project_hash = "2fe7e74d78edc9f70094219881c890f23d7abdba"
+project_hash = "2ea21e4a3580ab1e5884829e35f2bbe72f3703a3"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -779,11 +740,6 @@ git-tree-sha1 = "5e1e4c53fa39afe63a7d356e30452249365fba99"
 uuid = "411431e0-e8b7-467b-b5e0-f676ba4f2910"
 version = "0.1.1"
 
-[[deps.ExternalDocstrings]]
-git-tree-sha1 = "1224740fc4d07c989949e1c1b508ebd49a65a5f6"
-uuid = "e189563c-0753-4f5e-ad5c-be4293c83fb4"
-version = "0.1.1"
-
 [[deps.FLoops]]
 deps = ["BangBang", "Compat", "FLoopsBase", "InitialValues", "JuliaVariables", "MLStyle", "Serialization", "Setfield", "Transducers"]
 git-tree-sha1 = "ffb97765602e3cbe59a0589d237bf07f245a8576"
@@ -1064,12 +1020,6 @@ version = "0.1.8"
 [[deps.Markdown]]
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
-
-[[deps.Maybe]]
-deps = ["Compat", "ExprTools", "ExternalDocstrings", "Try"]
-git-tree-sha1 = "20da985e239bb56c8c9f76bdc9cfb87c1638c8f0"
-uuid = "334f122f-1118-46cc-837f-bff747ee6f78"
-version = "0.1.7"
 
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1469,11 +1419,6 @@ git-tree-sha1 = "aadb748be58b492045b4f56166b5188aa63ce549"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
 version = "0.1.7"
 
-[[deps.Try]]
-git-tree-sha1 = "56e72d45a7d77e23f6e943d28183eb509119843a"
-uuid = "bf1d0ff0-c4a9-496b-85f0-2b0d71c4f32a"
-version = "0.1.1"
-
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
@@ -1553,8 +1498,8 @@ version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═a10ebf42-ff08-49d9-8c2b-2d685b619552
 # ╠═bde90012-e6b4-11ed-058f-2786b140fd16
+# ╠═c655ef32-e93b-4997-a782-c235b3796b37
 # ╠═9b590668-6fa3-4138-8118-eb1ffdf0c291
 # ╠═3447f889-db39-4936-8f40-63861a7e8504
 # ╠═9517e49e-1b4c-454f-8230-4007240a4316
@@ -1565,13 +1510,6 @@ version = "17.4.0+0"
 # ╠═15ac24f3-0230-4f75-af53-7e1af8e9d4b3
 # ╠═277527c7-8f78-4b8d-8552-75eb74547472
 # ╠═194261d8-399e-4bbd-ac2d-269f78796a4d
-# ╠═d056337c-9ad3-429b-9a27-ddbf10fca954
-# ╠═9e2dce55-9214-4c12-bd8f-ee4049a7df19
-# ╠═3882e4a7-bf84-49cc-a4f8-11db7ff90731
-# ╠═25559ec2-1e6a-440e-a96a-7c767236c489
-# ╠═a5142872-e996-4955-a553-fe020229cd2f
-# ╠═a50b6f90-6110-44b3-bc15-581b577ce5db
-# ╠═a2cc4273-55e1-4557-a359-2ebe9df6a2c2
 # ╠═7ae55b9f-944c-4a6d-a00e-fc0bfccce9cc
 # ╠═344797a6-6083-4201-afce-6ef338cf14e1
 # ╠═5b5973fc-cfa1-4529-b72d-a65fa8771f17
