@@ -16,6 +16,9 @@ using Test
 # ╔═╡ 277527c7-8f78-4b8d-8552-75eb74547472
 using Flux
 
+# ╔═╡ 25559ec2-1e6a-440e-a96a-7c767236c489
+using Maybe
+
 # ╔═╡ 7ae55b9f-944c-4a6d-a00e-fc0bfccce9cc
 using Optimisers
 
@@ -25,34 +28,81 @@ how_long = 1000
 # ╔═╡ 3882e4a7-bf84-49cc-a4f8-11db7ff90731
 import Zygote
 
+# ╔═╡ a5142872-e996-4955-a553-fe020229cd2f
+begin
+	import Base.:+
+	+(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}) = (weight=a.weight+b.weight, bias = a.bias+b.bias, σ=nothing )
+	+(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}) = map(+,a,b)
+	+(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}) = (weight=a.weight+b.weight, bias = a.bias+b.bias, σ=nothing )
+	+(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}}, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float64}, Vector{Float64}, Nothing}}}) = map(+,a,b)
+end
+
+# ╔═╡ 342afffc-9b82-4e2b-ad07-e588459b94bf
+"Uses model to guide decisions on cartpoleenv
+and returns the total number of moves until
+termination"
+function value(model; max_steps = 100) 
+    c3 = CartPoleEnv(max_steps=max_steps)
+	i = 0
+	while i < max_steps
+		i+=1
+        prob = model(state(c3))[1]
+		choice = rand()<prob ? 1 : 2		
+	    c3(choice)
+	    is_terminated(c3) && break
+	end
+	i
+end
+
+# ╔═╡ 3447f889-db39-4936-8f40-63861a7e8504
+function mean_value(model; max_steps = 100)
+    mean(value(model,max_steps=max_steps) for _ in 1:how_long )
+end
+
+# ╔═╡ 15ac24f3-0230-4f75-af53-7e1af8e9d4b3
+"Uses model to guide decisions on cartpoleenv
+and returns the total number of moves until
+termination. No randomness"
+function value_max(model; max_steps = 100) 
+    c3 = CartPoleEnv(max_steps=max_steps)
+	i = 0
+	while i < max_steps
+		i+=1
+        prob = model(state(c3))[1]
+		#println(prob)
+		choice = 0.5<prob ? 1 : 2		
+	    c3(choice)
+	    is_terminated(c3) && break
+	end
+	i
+end
+
+# ╔═╡ a50b6f90-6110-44b3-bc15-581b577ce5db
+begin
+	import Base.:/
+	/(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, b::Int64) = (weight=a.weight/b, bias = a.bias/b, σ=nothing )
+	/(a::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}, b::Int64) = a ./b
+end
+
+# ╔═╡ 194261d8-399e-4bbd-ac2d-269f78796a4d
+normalize(v) = (v.-mean(v))/std(v)
+
+# ╔═╡ d056337c-9ad3-429b-9a27-ddbf10fca954
+n(v) = (v.-mean(v))/std(v)
+
+# ╔═╡ 9e2dce55-9214-4c12-bd8f-ee4049a7df19
+n([1,2,3])
+
+# ╔═╡ a2cc4273-55e1-4557-a359-2ebe9df6a2c2
+begin
+	import Base.:*
+	*(a::Float32, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}) = (weight=a*b.weight, bias = a*b.bias, σ=nothing )
+	*(a::Float32, b::Tuple{NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}}) = a .* b
+end
+
 # ╔═╡ ae713b21-8f8b-49dc-b9e0-4031dff7dd1d
 #https://stackoverflow.com/a/53645744
 unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
-
-# ╔═╡ 3c085ea5-a5da-40e1-baef-0136eff9e8a8
-m = Chain(Dense(4=>1))
-
-# ╔═╡ 48992180-9233-4d63-89f5-f57fb15d58cd
-Dense
-
-# ╔═╡ 57e0206e-6d3d-407f-8794-1edc2c0fab66
-m.bias
-
-# ╔═╡ 05351604-dddc-4663-80bc-a66e4c4aff08
-Dense
-
-# ╔═╡ 97417a67-0749-4ae0-bd48-dd000ee9eac2
-i = 9
-
-
-# ╔═╡ 4d8c2c4f-18dd-49a6-a369-ac098fbd3357
-function add_grads(a, b)
-    println(a)
-	println( b)
-	println(a[1])
-		println(a[1][1
-		])
-end
 
 # ╔═╡ 48a596d7-2306-44b5-9b3e-408eee296742
 md"""
@@ -70,13 +120,304 @@ a softmax etc
 # ╔═╡ 053a6034-b95e-4e36-a02b-2b5a4f68423c
 mul_scal_grad_chain4(a::Nothing, s::Float32) = nothing
 
+# ╔═╡ 30113064-75c8-4970-ad40-3033436880e3
+mul_scal_grad_chain4(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, s::Float32 ) = (weight=a.weight*s, bias = a.bias*s, σ=nothing )
+
+# ╔═╡ 6836a3a0-1817-45de-8edc-d6f3b9a59fc2
+function mul_scal_grad_chain3(a,s::Float32)
+    return mul_scal_grad_chain4.(a,s)
+end
+
+# ╔═╡ 287cc341-d327-4daf-8e71-b80f3beb017e
+mul_scal_grad_chain2(a, s::Float32) = (layers = mul_scal_grad_chain3(a[1],s),)
+
+# ╔═╡ 064825df-9182-4d7e-b2ee-486675573393
+mul_scal_grad_chain(a, s::Float32) = (mul_scal_grad_chain2(a[1],s),)
+
 # ╔═╡ 788842d4-7c1f-46ef-b8b0-599764b7b428
 function add_grad_chain4(a::Nothing,b::Nothing)
     return nothing
 end
 
-# ╔═╡ c9f95559-fe36-4f17-bca8-8517caa5d01c
-g = ((layers = ((weight = Float32[0.0 0.0 -0.0 0.0; -0.0 -0.0 0.0 -0.0; -0.0049724816 -0.0039834105 0.004610585 -0.0016869778], bias = Float32[0.0, -0.0, -0.13413496], σ = nothing), (weight = Float32[0.0 0.0 0.007637123; -0.0 -0.0 -0.007637123], bias = Float32[0.2499832, -0.2499832], σ = nothing), nothing),),)
+# ╔═╡ d3576111-4444-4f20-b760-2d81f0a6f664
+function add_grad_chain4(a::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}}, b::NamedTuple{(:weight, :bias, :σ), Tuple{Matrix{Float32}, Vector{Float32}, Nothing}})
+    return (weight=a.weight+b.weight, bias = a.bias+b.bias, σ=nothing )
+end
+
+# ╔═╡ 151b065e-f294-4ef8-820b-b9324e117d9c
+function add_grad_chain3(a,b)
+    return add_grad_chain4.(a,b)
+end
+
+# ╔═╡ 53bd7558-da62-4e17-b8b0-4d4bcb43f6f7
+function add_grad_chain2(a, b)
+    return (layers = add_grad_chain3(a[1],b[1]),)
+end
+
+# ╔═╡ d304a360-898d-426d-b6d4-4b6ee3bd2943
+function add_grad_chain(a, b)
+    return (add_grad_chain2(a[1],b[1]),)
+end
+
+# ╔═╡ c65a1343-e23e-49e7-9562-fb0e58c70bf7
+"Like value but also returns the gradient of model's
+parameters, averaged over all choices the model made.
+Adjusting the parameters by this gradient will make the model
+more likely to act as it does in this playout"
+function value2(model; max_steps=100) 
+    c3 = CartPoleEnv(max_steps=max_steps)
+	i = 0
+	grad_list = []
+	choices = []
+	while i < max_steps
+		i+=1
+		choice = 1
+		the_state = state(c3)
+        prob_chosen, grads_chosen  = Flux.withgradient(model) do mm
+	        # prob of picking 1
+            prob = mm(the_state)[1] 
+			#println(prob)
+			choice = rand()<prob ? 1 : 2
+			return choice == 1 ? prob : 1 - prob
+        end
+		push!(grad_list,grads_chosen)
+	    c3(choice)
+	    is_terminated(c3) && break
+	end
+	add_grad_chain(grad_list[1], grad_list[2])
+	i , mul_scal_grad_chain( reduce(add_grad_chain, grad_list), one(Float32) / i)
+end
+
+# ╔═╡ 9517e49e-1b4c-454f-8230-4007240a4316
+function mean_value2(model)
+    mean(value2(model)[1] for _ in 1:how_long )
+end
+
+# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
+function run_test()
+    d = Chain(Dense(4=>1))
+    @test abs(mean_value(d) - mean_value(d)) < 0.5
+	@test abs(mean_value(d) - mean_value2(d)) < 0.5
+end
+
+# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
+run_test()
+
+# ╔═╡ 5b5973fc-cfa1-4529-b72d-a65fa8771f17
+function inner(model, opt, runs, max_steps)
+		scores, grads = unzip([value2(model, max_steps=max_steps) for _ in 1:runs])
+	   
+	  println(mean(scores))
+	  #collect(scores)
+	  #scores, normalize(scores)
+	  # This will give negative coefficients to 
+	  # games that were longer than average.
+	  # The optimizer will move in the opposite
+	  # direction from the gradient, and hence
+	  # push us towards longer games
+	  #print(typeof(scores))
+	  #print(typeof(convert(Vector{Float32},normalize(scores))))
+	  net_grad = reduce(add_grad_chain, 
+		  mul_scal_grad_chain.(grads, 
+		  -convert(Vector{Float32},normalize(scores)) ) )
+	  #println(net_grad)
+	  #println(value2(the_model)[2][1])
+      #println(Base.summarysize.([scores, grads, net_grad, the_model, opt])  )
+	  Optimisers.update(opt, model, net_grad[1])
+end
+
+# ╔═╡ 344797a6-6083-4201-afce-6ef338cf14e1
+function train_loop(the_model; iters=100, runs_per_iter=100, max_steps=100)
+	rule = Optimisers.Adam()
+	opt = Optimisers.setup(rule, the_model)
+	##println(mean_value(the_model))
+	for _ in 1:iters
+        opt, the_model = inner(the_model, opt, runs_per_iter, max_steps)
+	end
+	the_model
+end
+
+# ╔═╡ fec94493-eefc-4182-91d5-329897775763
+value2(Chain(Dense(4=>10),Dense(10=>1)))
+
+# ╔═╡ 8c540ca4-36bd-4589-a1a9-6cc3791df90a
+m1 = Chain(Dense(4=>3, relu), Dense(3=>2),softmax)
+
+# ╔═╡ c2883f65-3789-45e7-b38f-9c3702458053
+mean_value(m1)
+
+# ╔═╡ d93a8ba1-9f52-4268-a546-6ef93c7335e0
+m2 = train_loop(m1)
+
+# ╔═╡ 7e28f6f3-6878-4e5c-b2bd-35645a3b8d7c
+mean_value(m2)
+
+# ╔═╡ 5560b842-6c93-4115-bb0d-6d79bd713e50
+# ╠═╡ disabled = true
+#=╠═╡
+m3 = train_loop(m2)
+  ╠═╡ =#
+
+# ╔═╡ 94718dc4-ab7b-46bb-8e66-2e21cba162f2
+# ╠═╡ disabled = true
+#=╠═╡
+m4 = train_loop(m3)
+  ╠═╡ =#
+
+# ╔═╡ cbf3fcd1-ab1f-422c-b611-8a79b105ec56
+#=╠═╡
+m5 = train_loop(m4)
+  ╠═╡ =#
+
+# ╔═╡ b96d59c4-9684-4945-9828-90c1bff9f3f9
+# ╠═╡ disabled = true
+#=╠═╡
+m6 = train_loop(m5)
+  ╠═╡ =#
+
+# ╔═╡ 343c520d-61bf-4b83-9fd4-3028d47b5168
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m6)
+  ╠═╡ =#
+
+# ╔═╡ b66d2c21-160e-49ce-bd6e-12ef2f04d74a
+# ╠═╡ disabled = true
+#=╠═╡
+m7 = train_loop(m6;iters=1000)
+  ╠═╡ =#
+
+# ╔═╡ 21b4a207-df33-4262-afb9-cab8bc933e8f
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m7)
+  ╠═╡ =#
+
+# ╔═╡ 1493cf9c-0e54-4b81-b986-6efa6b512d95
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m7, max_steps=1000)
+  ╠═╡ =#
+
+# ╔═╡ f2aaca41-4a17-4f20-85ba-c0ae11ed875e
+# ╠═╡ disabled = true
+#=╠═╡
+
+  ╠═╡ =#
+
+# ╔═╡ 6c25e268-bcef-41da-88fb-b6e3d0293788
+# ╠═╡ disabled = true
+#=╠═╡
+value(m7, max_steps = 200)
+  ╠═╡ =#
+
+# ╔═╡ d1d676e7-527a-4bc7-a380-b54689d8dbb0
+# ╠═╡ disabled = true
+#=╠═╡
+value_max(m7, max_steps = 200)
+  ╠═╡ =#
+
+# ╔═╡ c6aa1a92-237b-4e9e-b455-0cfe9a20d99b
+# ╠═╡ disabled = true
+#=╠═╡
+m8 = train_loop(m7;max_steps = 200)
+  ╠═╡ =#
+
+# ╔═╡ 139e884a-fd83-4a15-8653-9fdd76e54882
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m8, max_steps=1000)
+  ╠═╡ =#
+
+# ╔═╡ 223f0d82-ccbb-4fe4-b006-7141a690eda2
+# ╠═╡ disabled = true
+#=╠═╡
+m9 = train_loop(m8;max_steps = 200, iters=1000)
+  ╠═╡ =#
+
+# ╔═╡ 8611444a-5b97-41a7-add5-8f894f3cfd0d
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m9, max_steps=1000)
+  ╠═╡ =#
+
+# ╔═╡ 71da9797-573b-4e08-a77d-0bea7959c463
+# ╠═╡ disabled = true
+#=╠═╡
+m10 = train_loop(m8;max_steps = 200, iters=500)
+  ╠═╡ =#
+
+# ╔═╡ 076a98d2-c1bc-409b-b1f5-b29c68dca6d7
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m10, max_steps=1000)
+  ╠═╡ =#
+
+# ╔═╡ e7bdbbf7-b4da-48d8-bdb0-ba202a408a72
+# ╠═╡ disabled = true
+#=╠═╡
+value_max(m10, max_steps = 1000)
+  ╠═╡ =#
+
+# ╔═╡ 66ed1157-c4bb-45f8-b8af-f9ba6ec71f64
+# ╠═╡ disabled = true
+#=╠═╡
+m11 = train_loop(m10;max_steps = 300, iters=500)
+  ╠═╡ =#
+
+# ╔═╡ 30731751-ed31-4aec-9d20-10b813881d0d
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m11, max_steps=1000)
+  ╠═╡ =#
+
+# ╔═╡ 2dbfaf3f-4a51-41ff-a419-a01231c77236
+# ╠═╡ disabled = true
+#=╠═╡
+m12 = train_loop(m11;max_steps = 1000, iters=100)
+  ╠═╡ =#
+
+# ╔═╡ 1b7d5cae-01ac-46c7-9e43-d0d7c9f47317
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m12, max_steps=1000)
+  ╠═╡ =#
+
+# ╔═╡ f7f4563c-3955-4473-a0e0-08e2fd0e3b4a
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m12, max_steps=2000)
+  ╠═╡ =#
+
+# ╔═╡ 144456b9-b521-4d98-858c-2d81de1c707b
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m12, max_steps=3000)
+  ╠═╡ =#
+
+# ╔═╡ 72cc54c2-30b1-4703-a45b-8a0c78bf215f
+# ╠═╡ disabled = true
+#=╠═╡
+mean_value(m12, max_steps=10000)
+  ╠═╡ =#
+
+# ╔═╡ 2f16ca8b-fad5-4f14-a8e5-07aae0fa1df6
+# ╠═╡ disabled = true
+#=╠═╡
+value_max(m12, max_steps = 10000)
+  ╠═╡ =#
+
+# ╔═╡ 34b51055-a7a8-446c-801b-15ed4ecdd473
+# ╠═╡ disabled = true
+#=╠═╡
+value_max(m12, max_steps = 20000)
+  ╠═╡ =#
+
+# ╔═╡ feb46d13-8548-4222-abf2-e4122f613ccd
+# ╠═╡ disabled = true
+#=╠═╡
+value_max(m12, max_steps = 20000)		
+  ╠═╡ =#
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1224,6 +1565,8 @@ version = "17.4.0+0"
 # ╠═15ac24f3-0230-4f75-af53-7e1af8e9d4b3
 # ╠═277527c7-8f78-4b8d-8552-75eb74547472
 # ╠═194261d8-399e-4bbd-ac2d-269f78796a4d
+# ╠═d056337c-9ad3-429b-9a27-ddbf10fca954
+# ╠═9e2dce55-9214-4c12-bd8f-ee4049a7df19
 # ╠═3882e4a7-bf84-49cc-a4f8-11db7ff90731
 # ╠═25559ec2-1e6a-440e-a96a-7c767236c489
 # ╠═a5142872-e996-4955-a553-fe020229cd2f
@@ -1233,36 +1576,8 @@ version = "17.4.0+0"
 # ╠═344797a6-6083-4201-afce-6ef338cf14e1
 # ╠═5b5973fc-cfa1-4529-b72d-a65fa8771f17
 # ╠═ae713b21-8f8b-49dc-b9e0-4031dff7dd1d
-# ╠═3c085ea5-a5da-40e1-baef-0136eff9e8a8
-# ╠═5f7658aa-d96e-45bd-9942-98f138fc8535
-# ╠═63a2ffc2-aefe-4599-a042-e3d42447ac3f
-# ╠═108093f2-9496-4f75-9b04-cbefe9fad675
-# ╠═94a9129e-113f-41ad-bf17-b93f3e4a1fdd
-# ╠═e4ed6a37-82ae-45b6-a7c7-b6b0ef19439d
-# ╠═5490a57f-5bf4-40c3-9532-86ad6aadb8a6
-# ╠═fed8b5e5-0040-4972-90fa-de52ff612ba1
-# ╠═fadc6568-4f23-4d7b-aeac-50d92d184666
-# ╠═ecd79dd2-6f3d-4081-844d-25bcc5e92ed2
-# ╠═f2f41afc-e3e6-4420-80dc-045652ef4e2e
-# ╠═4b148b5d-39b8-4ff6-8ec6-9f3f38eb7e29
-# ╠═6bdc8595-1e1a-40d7-b627-b421c317eedc
 # ╠═fec94493-eefc-4182-91d5-329897775763
-# ╠═0d960581-15aa-4af8-92b0-3fbae3869ceb
-# ╠═288fecc0-a9c2-4a19-aa5c-9cbffeb95982
-# ╠═48992180-9233-4d63-89f5-f57fb15d58cd
-# ╠═57e0206e-6d3d-407f-8794-1edc2c0fab66
-# ╠═05351604-dddc-4663-80bc-a66e4c4aff08
-# ╠═4c452fad-2ca3-4694-99c9-9c147af13e73
-# ╠═e62457c8-a81b-47e7-8574-ce41efffef83
-# ╠═bfaf492f-9664-4281-9fae-7bc02696ead0
-# ╠═2108b686-4675-42e9-8fbe-bd5a11e101f5
-# ╠═956e3dbc-cfea-42da-8082-4e5ce4a7c4b1
-# ╠═88145d6a-6460-4f57-9e36-ca73b88f002c
 # ╠═c65a1343-e23e-49e7-9562-fb0e58c70bf7
-# ╠═97417a67-0749-4ae0-bd48-dd000ee9eac2
-# ╠═d73af3b6-2a82-4c2d-883c-469437378821
-# ╠═f9f1e243-ba0a-456d-b218-abe9f452d26d
-# ╠═4d8c2c4f-18dd-49a6-a369-ac098fbd3357
 # ╠═48a596d7-2306-44b5-9b3e-408eee296742
 # ╠═d304a360-898d-426d-b6d4-4b6ee3bd2943
 # ╠═064825df-9182-4d7e-b2ee-486675573393
@@ -1274,8 +1589,10 @@ version = "17.4.0+0"
 # ╠═151b065e-f294-4ef8-820b-b9324e117d9c
 # ╠═788842d4-7c1f-46ef-b8b0-599764b7b428
 # ╠═d3576111-4444-4f20-b760-2d81f0a6f664
-# ╠═c9f95559-fe36-4f17-bca8-8517caa5d01c
-# ╠═9572abdd-f934-4733-ac27-b8f302f9bfbd
+# ╠═8c540ca4-36bd-4589-a1a9-6cc3791df90a
+# ╠═c2883f65-3789-45e7-b38f-9c3702458053
+# ╠═d93a8ba1-9f52-4268-a546-6ef93c7335e0
+# ╠═7e28f6f3-6878-4e5c-b2bd-35645a3b8d7c
 # ╠═5560b842-6c93-4115-bb0d-6d79bd713e50
 # ╠═94718dc4-ab7b-46bb-8e66-2e21cba162f2
 # ╠═cbf3fcd1-ab1f-422c-b611-8a79b105ec56
