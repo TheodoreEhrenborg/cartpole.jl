@@ -15,7 +15,7 @@
       pkgs = import nixpkgs {inherit system;};
     in {
       packages.default = pkgs.writeScriptBin "run_pluto" ''
-        ${pkgs.julia}/bin/julia -E "import Pkg; Pkg.add(\"Pluto\"); using Pluto; Pluto.run()"
+        ${pkgs.julia}/bin/julia -E "import Pkg; Pkg.add(\"Pluto\"); using Pluto; Pluto.run(notebook=\"rl_notebook.jl\")"
       '';
       formatter = pkgs.alejandra;
     });
