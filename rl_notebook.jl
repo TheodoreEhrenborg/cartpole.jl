@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.26
+# v0.19.27
 
 using Markdown
 using InteractiveUtils
@@ -21,6 +21,16 @@ using Optimisers
 
 # ╔═╡ 9b590668-6fa3-4138-8118-eb1ffdf0c291
 how_long = 1000
+
+# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
+function run_test()
+    d = Chain(Dense(4=>1))
+    @test abs(mean_value(d) - mean_value(d)) < 0.5
+	@test abs(mean_value(d) - mean_value2(d)) < 0.5
+end
+
+# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
+run_test()
 
 # ╔═╡ 342afffc-9b82-4e2b-ad07-e588459b94bf
 "Uses model to guide decisions on cartpoleenv
@@ -157,16 +167,6 @@ end
 function mean_value2(model)
     mean(value2(model)[1] for _ in 1:how_long )
 end
-
-# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
-function run_test()
-    d = Chain(Dense(4=>1))
-    @test abs(mean_value(d) - mean_value(d)) < 0.5
-	@test abs(mean_value(d) - mean_value2(d)) < 0.5
-end
-
-# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
-run_test()
 
 # ╔═╡ 5b5973fc-cfa1-4529-b72d-a65fa8771f17
 function inner(model, opt, runs, max_steps)
@@ -404,7 +404,7 @@ StatsBase = "~0.33.21"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.1"
+julia_version = "1.9.3"
 manifest_format = "2.0"
 project_hash = "2ea21e4a3580ab1e5884829e35f2bbe72f3703a3"
 
@@ -595,7 +595,7 @@ version = "3.46.2"
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.0.2+0"
+version = "1.0.5+0"
 
 [[deps.CompositionsBase]]
 git-tree-sha1 = "802bb88cd69dfd1509f6670416bd4434015693ad"
@@ -1115,7 +1115,7 @@ version = "0.11.17"
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-version = "1.9.0"
+version = "1.9.2"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
