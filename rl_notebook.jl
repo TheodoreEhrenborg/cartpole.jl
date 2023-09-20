@@ -19,18 +19,14 @@ using Flux
 # ╔═╡ 7ae55b9f-944c-4a6d-a00e-fc0bfccce9cc
 using Optimisers
 
+# ╔═╡ 18e44fbc-30b2-4a27-a11b-dfe50008f9ee
+# ╠═╡ disabled = true
+#=╠═╡
+1+1
+  ╠═╡ =#
+
 # ╔═╡ 9b590668-6fa3-4138-8118-eb1ffdf0c291
 how_long = 1000
-
-# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
-function run_test()
-    d = Chain(Dense(4=>1))
-    @test abs(mean_value(d) - mean_value(d)) < 0.5
-	@test abs(mean_value(d) - mean_value2(d)) < 0.5
-end
-
-# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
-run_test()
 
 # ╔═╡ 342afffc-9b82-4e2b-ad07-e588459b94bf
 "Uses model to guide decisions on cartpoleenv
@@ -167,6 +163,16 @@ end
 function mean_value2(model)
     mean(value2(model)[1] for _ in 1:how_long )
 end
+
+# ╔═╡ b5b942e8-2d4f-45ac-b030-c7c346c0dbe5
+function run_test()
+    d = Chain(Dense(4=>1))
+    @test abs(mean_value(d) - mean_value(d)) < 0.5
+	@test abs(mean_value(d) - mean_value2(d)) < 0.5
+end
+
+# ╔═╡ 4be52fa9-7506-4639-9e08-a88abdf57d9c
+run_test()
 
 # ╔═╡ 5b5973fc-cfa1-4529-b72d-a65fa8771f17
 function inner(model, opt, runs, max_steps)
@@ -1500,6 +1506,7 @@ version = "17.4.0+0"
 # ╔═╡ Cell order:
 # ╠═bde90012-e6b4-11ed-058f-2786b140fd16
 # ╠═c655ef32-e93b-4997-a782-c235b3796b37
+# ╠═18e44fbc-30b2-4a27-a11b-dfe50008f9ee
 # ╠═9b590668-6fa3-4138-8118-eb1ffdf0c291
 # ╠═3447f889-db39-4936-8f40-63861a7e8504
 # ╠═9517e49e-1b4c-454f-8230-4007240a4316
